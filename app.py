@@ -94,3 +94,9 @@ async def api_export_txt(auth: bool = Depends(verify_key)):
         if acc.get("status") == "success":
             lines.append(f"{acc.get('username')}:{acc.get('password')}:{acc.get('email')}")
     return "\n".join(lines)
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    print(f"[*] Starting server on 0.0.0.0:{port}...")
+    uvicorn.run("app:app", host="0.0.0.0", port=port)
