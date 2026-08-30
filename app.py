@@ -51,12 +51,15 @@ async def get_dashboard(request: Request, key: Optional[str] = None):
     accounts = load_accounts()
     # 최신 순으로 정렬
     accounts_sorted = list(reversed(accounts))
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "accounts": accounts_sorted,
-        "total_count": len(accounts),
-        "api_key": key or ""
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={
+            "accounts": accounts_sorted,
+            "total_count": len(accounts),
+            "api_key": key or ""
+        }
+    )
 
 @app.get("/api/accounts")
 async def api_get_accounts(auth: bool = Depends(verify_key)):
