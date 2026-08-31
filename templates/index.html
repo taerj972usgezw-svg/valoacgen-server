@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VALORANT 계정 모바일 대시보드</title>
+    <title>VALORANT 계정 관리 대시보드</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Noto+Sans+KR:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
         
         body {
             font-family: 'Noto Sans KR', sans-serif;
@@ -42,12 +42,19 @@
             background: #2b3b4c;
             border-radius: 2px;
         }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col pb-12">
+<body class="min-h-screen flex flex-col pb-16">
 
     <!-- 상단 고정 헤더 -->
-    <header class="sticky top-0 z-30 bg-[#0c1218]/90 backdrop-blur-md border-b border-[#223242] px-4 py-3 shadow-lg">
+    <header class="sticky top-0 z-30 bg-[#0c1218]/95 backdrop-blur-md border-b border-[#223242] px-4 py-3 shadow-lg">
         <div class="max-w-xl mx-auto flex items-center justify-between">
             <div class="flex items-center space-x-2">
                 <div class="w-8 h-8 rounded-lg bg-[#ff4655] flex items-center justify-center shadow-lg shadow-red-500/20">
@@ -55,7 +62,7 @@
                 </div>
                 <div>
                     <h1 class="font-valo text-xl font-bold tracking-wider leading-none">VALORANT <span class="text-xs bg-[#ff4655] px-1.5 py-0.5 rounded text-white font-mono">PRO</span></h1>
-                    <p class="text-[10px] text-gray-400">모바일 실시간 계정 보관함</p>
+                    <p class="text-[10px] text-gray-400">계정 상태 분류 및 실시간 보관함</p>
                 </div>
             </div>
             
@@ -74,64 +81,125 @@
     </header>
 
     <!-- 메인 컨텐츠 영역 -->
-    <main class="max-w-xl mx-auto w-full px-4 pt-4 flex-1">
+    <main class="max-w-xl mx-auto w-full px-4 pt-3 flex-1">
 
-        <!-- 통계 및 검색 바 -->
-        <div class="grid grid-cols-2 gap-3 mb-4">
-            <div class="bg-valo-card border rounded-xl p-3.5 flex flex-col justify-between">
-                <span class="text-xs text-gray-400">총 보관 계정</span>
-                <div class="flex items-baseline space-x-1 mt-1">
-                    <span id="totalCount" class="font-valo text-3xl font-bold text-white leading-none">{{ total_count }}</span>
-                    <span class="text-xs text-gray-400">개</span>
-                </div>
+        <!-- 4개 통계 카드 그리드 -->
+        <div class="grid grid-cols-4 gap-2 mb-3">
+            <!-- 전체 -->
+            <div onclick="selectCategory('all')" class="cursor-pointer bg-valo-card border rounded-xl p-2.5 flex flex-col justify-between hover:border-gray-500 transition">
+                <span class="text-[10px] text-gray-400 font-medium">총 계정</span>
+                <span id="statTotal" class="font-valo text-2xl font-bold text-white leading-none mt-1">{{ stats.total }}</span>
             </div>
-
-            <div class="bg-valo-card border rounded-xl p-3 flex flex-col justify-center space-y-1.5">
-                <button onclick="downloadTxt()" class="w-full py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 btn-active shadow">
-                    <i class="fa-solid fa-download"></i>
-                    <span>TXT 다운로드</span>
-                </button>
-                <button onclick="confirmClear()" class="w-full py-1 px-3 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 rounded-lg text-[11px] font-medium flex items-center justify-center space-x-1 btn-active">
-                    <i class="fa-solid fa-trash-can"></i>
-                    <span>기록 초기화</span>
-                </button>
+            <!-- 미사용 (사용가능) -->
+            <div onclick="selectCategory('available')" class="cursor-pointer bg-valo-card border border-emerald-500/30 rounded-xl p-2.5 flex flex-col justify-between hover:border-emerald-400 transition bg-emerald-950/10">
+                <span class="text-[10px] text-emerald-400 font-medium flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1"></span>미사용
+                </span>
+                <span id="statAvailable" class="font-valo text-2xl font-bold text-emerald-300 leading-none mt-1">{{ stats.available }}</span>
+            </div>
+            <!-- 사용 중 / 타인 사용 -->
+            <div onclick="selectCategory('in_use')" class="cursor-pointer bg-valo-card border border-sky-500/30 rounded-xl p-2.5 flex flex-col justify-between hover:border-sky-400 transition bg-sky-950/10">
+                <span class="text-[10px] text-sky-400 font-medium flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-sky-400 mr-1"></span>사용중
+                </span>
+                <span id="statInUse" class="font-valo text-2xl font-bold text-sky-300 leading-none mt-1">{{ stats.in_use + stats.shared }}</span>
+            </div>
+            <!-- 정지 / 밴 -->
+            <div onclick="selectCategory('banned')" class="cursor-pointer bg-valo-card border border-rose-500/30 rounded-xl p-2.5 flex flex-col justify-between hover:border-rose-400 transition bg-rose-950/10">
+                <span class="text-[10px] text-rose-400 font-medium flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1"></span>정지/밴
+                </span>
+                <span id="statBanned" class="font-valo text-2xl font-bold text-rose-400 leading-none mt-1">{{ stats.banned }}</span>
             </div>
         </div>
 
-        <!-- 검색 필터 -->
-        <div class="relative mb-4">
+        <!-- 액션 버튼 바 -->
+        <div class="flex space-x-2 mb-3">
+            <button onclick="downloadTxt()" class="flex-1 py-2 px-3 bg-[#15202b] hover:bg-[#1e2d3d] text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 btn-active">
+                <i class="fa-solid fa-download"></i>
+                <span>TXT 다운로드</span>
+            </button>
+            <button onclick="confirmClear()" class="py-2 px-3 bg-[#15202b] hover:bg-red-950/50 text-red-400 border border-red-900/40 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 btn-active">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>전체 초기화</span>
+            </button>
+        </div>
+
+        <!-- 검색창 -->
+        <div class="relative mb-3">
             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-            <input type="text" id="searchInput" oninput="filterAccounts()" placeholder="아이디, 이메일 검색..." 
-                   class="w-full bg-[#15202b] border border-[#223242] text-sm text-white placeholder-gray-500 rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#ff4655] transition">
+            <input type="text" id="searchInput" oninput="filterAccounts()" placeholder="아이디, 이메일, 메모 검색..." 
+                   class="w-full bg-[#15202b] border border-[#223242] text-sm text-white placeholder-gray-500 rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#ff4655] transition shadow-inner">
+        </div>
+
+        <!-- 카테고리 필터 탭 바 (가로 스크롤) -->
+        <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-2 mb-3">
+            <button onclick="selectCategory('all')" id="tab-all" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-[#ff4655] text-white border border-[#ff4655] shadow-sm flex items-center space-x-1 btn-active">
+                <span>전체</span>
+                <span id="tabCount-all" class="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono">{{ stats.total }}</span>
+            </button>
+            <button onclick="selectCategory('available')" id="tab-available" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-emerald-400 border border-[#223242] hover:border-emerald-500/50 flex items-center space-x-1 btn-active">
+                <span>🟢 미사용</span>
+                <span id="tabCount-available" class="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 font-mono">{{ stats.available }}</span>
+            </button>
+            <button onclick="selectCategory('in_use')" id="tab-in_use" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-sky-400 border border-[#223242] hover:border-sky-500/50 flex items-center space-x-1 btn-active">
+                <span>🔵 사용 중</span>
+                <span id="tabCount-in_use" class="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/20 font-mono">{{ stats.in_use }}</span>
+            </button>
+            <button onclick="selectCategory('shared')" id="tab-shared" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-purple-400 border border-[#223242] hover:border-purple-500/50 flex items-center space-x-1 btn-active">
+                <span>🟣 타인 사용</span>
+                <span id="tabCount-shared" class="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-500/20 font-mono">{{ stats.shared }}</span>
+            </button>
+            <button onclick="selectCategory('used')" id="tab-used" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-gray-400 border border-[#223242] hover:border-gray-500 flex items-center space-x-1 btn-active">
+                <span>⚪ 사용 완료</span>
+                <span id="tabCount-used" class="text-[10px] px-1.5 py-0.2 rounded-full bg-gray-500/20 font-mono">{{ stats.used }}</span>
+            </button>
+            <button onclick="selectCategory('banned')" id="tab-banned" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-rose-400 border border-[#223242] hover:border-rose-500/50 flex items-center space-x-1 btn-active">
+                <span>🔴 정지/밴</span>
+                <span id="tabCount-banned" class="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-500/20 font-mono">{{ stats.banned }}</span>
+            </button>
         </div>
 
         <!-- 계정 목록 컨테이너 -->
         <div id="accountList" class="space-y-3">
-            <!-- 서버 사이드 초기 렌더링 -->
+            <!-- 초기 렌더링 -->
             {% for acc in accounts %}
-            <div class="account-card bg-valo-card border rounded-xl p-4 shadow-md transition hover:border-[#ff4655]/50 relative"
-                 data-user="{{ acc.username }}" data-email="{{ acc.email }}">
+            {% set tag = acc.status_tag or 'available' %}
+            <div class="account-card bg-valo-card border rounded-xl p-3.5 shadow-md transition hover:border-[#ff4655]/50 relative"
+                 data-user="{{ acc.username }}" data-email="{{ acc.email }}" data-memo="{{ acc.memo or '' }}" data-tag="{{ tag }}">
                 
-                <!-- 상단 헤더: 아이디 & 생성 시각 -->
+                <!-- 상단 헤더: 태그 & 아이디 & 복사 버튼 -->
                 <div class="flex items-start justify-between border-b border-[#223242] pb-2.5 mb-2.5">
                     <div>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-red-500/10 text-[#ff4655] border border-red-500/20">VALORANT</span>
-                            <h3 class="font-valo text-lg font-bold text-white tracking-wide">{{ acc.username }}</h3>
+                        <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                            <!-- 상태 뱃지 -->
+                            {% if tag == 'available' %}
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🟢 미사용</span>
+                            {% elif tag == 'in_use' %}
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">🔵 사용 중</span>
+                            {% elif tag == 'shared' %}
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">🟣 타인 사용</span>
+                            {% elif tag == 'used' %}
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 border border-gray-500/30">⚪ 사용 완료</span>
+                            {% elif tag == 'banned' %}
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">🔴 정지/밴</span>
+                            {% endif %}
+
+                            <h3 class="font-valo text-lg font-bold text-white tracking-wide leading-tight ml-1">{{ acc.username }}</h3>
                         </div>
                         <p class="text-[11px] text-gray-400 mt-0.5">{{ acc.email }}</p>
                     </div>
 
                     <!-- 일괄 복사 (ID:PW) -->
                     <button onclick="copyText('{{ acc.username }}:{{ acc.password }}', '아이디:비밀번호')" 
-                            class="px-2.5 py-1.5 bg-[#ff4655] hover:bg-red-600 text-white rounded-lg text-xs font-bold flex items-center space-x-1 btn-active shadow-md shadow-red-500/20">
+                            class="px-2.5 py-1.5 bg-[#ff4655] hover:bg-red-600 text-white rounded-lg text-xs font-bold flex items-center space-x-1 btn-active shadow-md shadow-red-500/20 flex-shrink-0">
                         <i class="fa-regular fa-clone"></i>
                         <span>ID:PW 복사</span>
                     </button>
                 </div>
 
                 <!-- 계정 정보 및 개별 복사 버튼 그리드 -->
-                <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="grid grid-cols-2 gap-2 text-xs mb-2.5">
                     <!-- 아이디 개별 복사 -->
                     <button onclick="copyText('{{ acc.username }}', '아이디')" 
                             class="flex items-center justify-between p-2.5 bg-[#0c1218] border border-[#223242] rounded-lg hover:border-gray-500 text-left btn-active">
@@ -147,18 +215,58 @@
                             class="flex items-center justify-between p-2.5 bg-[#0c1218] border border-[#223242] rounded-lg hover:border-gray-500 text-left btn-active">
                         <div class="truncate mr-1">
                             <span class="text-[10px] text-gray-500 block">비밀번호</span>
-                            <span class="font-mono text-gray-200 truncate">{{ acc.password }}</span>
+                            <span class="font-mono text-amber-400 font-bold truncate">{{ acc.password }}</span>
                         </div>
                         <i class="fa-regular fa-copy text-gray-400 text-xs flex-shrink-0"></i>
                     </button>
                 </div>
 
-                <!-- 하단 정보: 생성일 & 생년월일 -->
-                <div class="flex items-center justify-between mt-2 text-[10px] text-gray-500 pt-1">
-                    <span>생성: {{ acc.created_at or '방금 전' }}</span>
-                    {% if acc.birthdate %}
-                    <span>생년월일: {{ acc.birthdate.year }}-{{ acc.birthdate.month }}-{{ acc.birthdate.day }}</span>
-                    {% endif %}
+                <!-- 상태 변경 터치 버튼 그룹 (1-Tap 빠른 변경) -->
+                <div class="bg-[#0c1218]/70 p-1.5 rounded-lg border border-[#223242] mb-2">
+                    <div class="flex items-center justify-between mb-1 px-1">
+                        <span class="text-[10px] text-gray-400 font-semibold">상태 변경:</span>
+                        <button onclick="deleteAccount('{{ acc.username }}')" class="text-[10px] text-red-400 hover:text-red-300 flex items-center space-x-1">
+                            <i class="fa-solid fa-trash-can text-[9px]"></i>
+                            <span>삭제</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-5 gap-1 text-[10px]">
+                        <button onclick="updateAccountStatus('{{ acc.username }}', 'available')" 
+                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'available' %}bg-emerald-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-emerald-400 border border-[#223242]{% endif %} btn-active">
+                            미사용
+                        </button>
+                        <button onclick="updateAccountStatus('{{ acc.username }}', 'in_use')" 
+                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'in_use' %}bg-sky-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-sky-400 border border-[#223242]{% endif %} btn-active">
+                            사용중
+                        </button>
+                        <button onclick="updateAccountStatus('{{ acc.username }}', 'shared')" 
+                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'shared' %}bg-purple-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-purple-400 border border-[#223242]{% endif %} btn-active">
+                            타인사용
+                        </button>
+                        <button onclick="updateAccountStatus('{{ acc.username }}', 'used')" 
+                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'used' %}bg-gray-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-gray-200 border border-[#223242]{% endif %} btn-active">
+                            완료
+                        </button>
+                        <button onclick="updateAccountStatus('{{ acc.username }}', 'banned')" 
+                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'banned' %}bg-rose-600 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-rose-400 border border-[#223242]{% endif %} btn-active">
+                            정지
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 메모 영역 -->
+                <div class="flex items-center justify-between text-[11px] pt-1">
+                    <div onclick="openMemoModal('{{ acc.username }}', '{{ acc.memo or '' }}')" class="cursor-pointer flex-1 flex items-center space-x-1.5 text-gray-400 hover:text-white bg-[#0c1218]/40 px-2 py-1 rounded border border-transparent hover:border-gray-700 transition mr-2">
+                        <i class="fa-solid fa-pen-to-square text-[10px] text-amber-400"></i>
+                        <span class="truncate">
+                            {% if acc.memo %}
+                            <span class="text-amber-300 font-medium">{{ acc.memo }}</span>
+                            {% else %}
+                            <span class="text-gray-500 italic">+ 메모 남기기 (예: 철수 줌, 본캐 등)</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <span class="text-[10px] text-gray-500 flex-shrink-0">{{ acc.created_at[5:16] if acc.created_at else '' }}</span>
                 </div>
             </div>
             {% else %}
@@ -171,7 +279,33 @@
         </div>
     </main>
 
-    <!-- 복사 알림 토스트 (Toast) -->
+    <!-- 메모 작성/수정 모달 -->
+    <div id="memoModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-200">
+        <div class="bg-[#15202b] border border-[#223242] rounded-2xl w-full max-w-sm p-4 shadow-2xl">
+            <div class="flex items-center justify-between mb-3 border-b border-[#223242] pb-2">
+                <div class="flex items-center space-x-1.5">
+                    <i class="fa-solid fa-pen-nib text-amber-400 text-sm"></i>
+                    <h4 class="text-sm font-bold text-white">계정 메모 작성</h4>
+                </div>
+                <button onclick="closeMemoModal()" class="text-gray-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <p id="memoTargetUser" class="text-xs text-gray-400 mb-2 font-mono"></p>
+            <textarea id="memoInput" rows="3" placeholder="예: 누구한테 줌, 배치용, 본캐, 3일 정지 등..." 
+                      class="w-full bg-[#0c1218] border border-[#223242] text-sm text-white placeholder-gray-600 rounded-xl p-3 focus:outline-none focus:border-amber-400 transition mb-3"></textarea>
+            <div class="flex space-x-2">
+                <button onclick="closeMemoModal()" class="flex-1 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold btn-active">
+                    취소
+                </button>
+                <button onclick="saveMemo()" class="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold btn-active shadow-lg shadow-amber-500/20">
+                    저장하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 복사/상태 알림 토스트 (Toast) -->
     <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#15202b] border border-[#00e676] text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center space-x-2 text-xs font-semibold opacity-0 pointer-events-none transition-all duration-300 transform translate-y-3">
         <i class="fa-solid fa-circle-check text-[#00e676] text-sm"></i>
         <span id="toastMsg">클립보드에 복사되었습니다!</span>
@@ -180,7 +314,19 @@
     <!-- 스크립트 -->
     <script>
         let accountsData = [];
+        let currentCategory = "all";
+        let memoTarget = "";
+        let isModalOpen = false;
         const apiKey = "{{ api_key }}";
+
+        // 태그 정보 매핑
+        const tagMeta = {
+            available: { label: "미사용", badge: "🟢 미사용", color: "emerald" },
+            in_use:    { label: "사용중", badge: "🔵 사용 중", color: "sky" },
+            shared:    { label: "타인사용", badge: "🟣 타인 사용", color: "purple" },
+            used:      { label: "완료",   badge: "⚪ 사용 완료", color: "gray" },
+            banned:    { label: "정지",   badge: "🔴 정지/밴", color: "rose" }
+        };
 
         // 클립보드 복사 함수
         function copyText(text, label) {
@@ -204,10 +350,11 @@
         }
 
         // 토스트 알림 표시
-        function showToast(msg) {
+        function showToast(msg, isSuccess = true) {
             const toast = document.getElementById("toast");
             const toastMsg = document.getElementById("toastMsg");
             toastMsg.innerText = msg;
+            toast.style.borderColor = isSuccess ? "#00e676" : "#ff4655";
             toast.classList.remove("opacity-0", "translate-y-3", "pointer-events-none");
             toast.classList.add("opacity-100", "translate-y-0");
 
@@ -217,7 +364,33 @@
             }, 1800);
         }
 
-        // 검색 필터링
+        // 카테고리 탭 선택
+        function selectCategory(cat) {
+            currentCategory = cat;
+            document.querySelectorAll(".cat-tab").forEach(tab => {
+                tab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-gray-400 border border-[#223242] flex items-center space-x-1 btn-active";
+            });
+
+            const activeTab = document.getElementById(`tab-${cat}`);
+            if (activeTab) {
+                if (cat === "all") {
+                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-[#ff4655] text-white border border-[#ff4655] shadow-sm flex items-center space-x-1 btn-active";
+                } else if (cat === "available") {
+                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-emerald-600 text-white border border-emerald-500 shadow-sm flex items-center space-x-1 btn-active";
+                } else if (cat === "in_use") {
+                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-sky-600 text-white border border-sky-500 shadow-sm flex items-center space-x-1 btn-active";
+                } else if (cat === "shared") {
+                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-purple-600 text-white border border-purple-500 shadow-sm flex items-center space-x-1 btn-active";
+                } else if (cat === "used") {
+                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-gray-600 text-white border border-gray-500 shadow-sm flex items-center space-x-1 btn-active";
+                } else if (cat === "banned") {
+                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-rose-600 text-white border border-rose-500 shadow-sm flex items-center space-x-1 btn-active";
+                }
+            }
+            filterAccounts();
+        }
+
+        // 검색 및 카테고리 필터링
         function filterAccounts() {
             const q = document.getElementById("searchInput").value.toLowerCase().trim();
             const cards = document.querySelectorAll(".account-card");
@@ -225,17 +398,126 @@
             cards.forEach(card => {
                 const user = (card.getAttribute("data-user") || "").toLowerCase();
                 const email = (card.getAttribute("data-email") || "").toLowerCase();
-                if (user.includes(q) || email.includes(q)) {
+                const memo = (card.getAttribute("data-memo") || "").toLowerCase();
+                const tag = card.getAttribute("data-tag") || "available";
+
+                const matchesQuery = user.includes(q) || email.includes(q) || memo.includes(q);
+                const matchesCategory = (currentCategory === "all") || (tag === currentCategory);
+
+                if (matchesQuery && matchesCategory) {
                     card.style.display = "block";
                     visibleCount++;
                 } else {
                     card.style.display = "none";
                 }
             });
+
+            const emptyMsg = document.getElementById("emptyMsg");
+            if (emptyMsg) {
+                emptyMsg.style.display = (visibleCount === 0) ? "block" : "none";
+            }
+        }
+
+        // 계정 상태 업데이트 (원클릭)
+        async function updateAccountStatus(username, newTag) {
+            try {
+                const url = apiKey ? `/api/account/update?key=${encodeURIComponent(apiKey)}` : `/api/account/update`;
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(apiKey ? { "x-api-key": apiKey } : {})
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        status_tag: newTag
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    showToast(`상태가 [${tagMeta[newTag]?.badge || newTag}]로 변경되었습니다!`);
+                    fetchAccounts(false);
+                } else {
+                    showToast("상태 변경 실패", false);
+                }
+            } catch (err) {
+                console.error("상태 변경 오류:", err);
+                showToast("네트워크 오류", false);
+            }
+        }
+
+        // 메모 모달 열기
+        function openMemoModal(username, currentMemo) {
+            isModalOpen = true;
+            memoTarget = username;
+            document.getElementById("memoTargetUser").innerText = `계정: ${username}`;
+            document.getElementById("memoInput").value = currentMemo || "";
+            const modal = document.getElementById("memoModal");
+            modal.classList.remove("opacity-0", "pointer-events-none");
+            modal.classList.add("opacity-100");
+            setTimeout(() => document.getElementById("memoInput").focus(), 100);
+        }
+
+        // 메모 모달 닫기
+        function closeMemoModal() {
+            isModalOpen = false;
+            memoTarget = "";
+            const modal = document.getElementById("memoModal");
+            modal.classList.remove("opacity-100");
+            modal.classList.add("opacity-0", "pointer-events-none");
+        }
+
+        // 메모 저장
+        async function saveMemo() {
+            if (!memoTarget) return;
+            const newMemo = document.getElementById("memoInput").value.trim();
+            try {
+                const url = apiKey ? `/api/account/update?key=${encodeURIComponent(apiKey)}` : `/api/account/update`;
+                const res = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(apiKey ? { "x-api-key": apiKey } : {})
+                    },
+                    body: JSON.stringify({
+                        username: memoTarget,
+                        memo: newMemo
+                    })
+                });
+
+                if (res.ok) {
+                    showToast("메모가 저장되었습니다!");
+                    closeMemoModal();
+                    fetchAccounts(false);
+                } else {
+                    showToast("메모 저장 실패", false);
+                }
+            } catch (err) {
+                console.error("메모 저장 오류:", err);
+                showToast("네트워크 오류", false);
+            }
+        }
+
+        // 개별 계정 삭제
+        async function deleteAccount(username) {
+            if (confirm(`'${username}' 계정을 정말 삭제하시겠습니까?`)) {
+                try {
+                    const url = apiKey ? `/api/account/${encodeURIComponent(username)}?key=${encodeURIComponent(apiKey)}` : `/api/account/${encodeURIComponent(username)}`;
+                    const res = await fetch(url, { method: "DELETE" });
+                    if (res.ok) {
+                        showToast(`계정이 삭제되었습니다.`);
+                        fetchAccounts(false);
+                    }
+                } catch (err) {
+                    console.error("삭제 실패:", err);
+                }
+            }
         }
 
         // 계정 목록 실시간 갱신 API 호출
         async function fetchAccounts(manual = false) {
+            if (isModalOpen && !manual) return; // 모달 열려있을 때 갱신 방지
             const icon = document.getElementById("refreshIcon");
             if (manual && icon) icon.classList.add("animate-spin");
 
@@ -247,7 +529,7 @@
                     if (data && data.accounts) {
                         accountsData = data.accounts;
                         renderAccounts(accountsData);
-                        document.getElementById("totalCount").innerText = data.total;
+                        updateStats(data.stats || {});
                     }
                 }
             } catch (err) {
@@ -255,6 +537,29 @@
             } finally {
                 if (icon) icon.classList.remove("animate-spin");
             }
+        }
+
+        // 상단 통계 수치 갱신
+        function updateStats(stats) {
+            if (!stats) return;
+            const total = stats.total || 0;
+            const available = stats.available || 0;
+            const inUse = stats.in_use || 0;
+            const shared = stats.shared || 0;
+            const used = stats.used || 0;
+            const banned = stats.banned || 0;
+
+            document.getElementById("statTotal").innerText = total;
+            document.getElementById("statAvailable").innerText = available;
+            document.getElementById("statInUse").innerText = inUse + shared;
+            document.getElementById("statBanned").innerText = banned;
+
+            document.getElementById("tabCount-all").innerText = total;
+            document.getElementById("tabCount-available").innerText = available;
+            document.getElementById("tabCount-in_use").innerText = inUse;
+            document.getElementById("tabCount-shared").innerText = shared;
+            document.getElementById("tabCount-used").innerText = used;
+            document.getElementById("tabCount-banned").innerText = banned;
         }
 
         // 동적 카드 렌더링
@@ -272,25 +577,43 @@
 
             let html = "";
             list.forEach(acc => {
+                const tag = acc.status_tag || 'available';
+                const memo = acc.memo || '';
+                const createdShort = acc.created_at ? acc.created_at.substring(5, 16).replace('T', ' ') : '';
                 const bdStr = acc.birthdate ? `${acc.birthdate.year || ''}-${acc.birthdate.month || ''}-${acc.birthdate.day || ''}` : '';
+
+                // 태그 뱃지 HTML
+                let badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🟢 미사용</span>`;
+                if (tag === 'in_use') badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">🔵 사용 중</span>`;
+                else if (tag === 'shared') badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">🟣 타인 사용</span>`;
+                else if (tag === 'used') badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 border border-gray-500/30">⚪ 사용 완료</span>`;
+                else if (tag === 'banned') badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">🔴 정지/밴</span>`;
+
+                // 상태 버튼 활성화 클래스
+                const btnCls = (targetTag, color) => tag === targetTag 
+                    ? `bg-${color}-500 text-white shadow font-bold` 
+                    : `bg-[#15202b] text-gray-400 hover:text-${color}-400 border border-[#223242]`;
+
                 html += `
-                <div class="account-card bg-valo-card border rounded-xl p-4 shadow-md transition hover:border-[#ff4655]/50 relative"
-                     data-user="${acc.username}" data-email="${acc.email}">
+                <div class="account-card bg-valo-card border rounded-xl p-3.5 shadow-md transition hover:border-[#ff4655]/50 relative"
+                     data-user="${acc.username}" data-email="${acc.email}" data-memo="${memo}" data-tag="${tag}">
+                    
                     <div class="flex items-start justify-between border-b border-[#223242] pb-2.5 mb-2.5">
                         <div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-red-500/10 text-[#ff4655] border border-red-500/20">VALORANT</span>
-                                <h3 class="font-valo text-lg font-bold text-white tracking-wide">${acc.username}</h3>
+                            <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                                ${badgeHtml}
+                                <h3 class="font-valo text-lg font-bold text-white tracking-wide leading-tight ml-1">${acc.username}</h3>
                             </div>
                             <p class="text-[11px] text-gray-400 mt-0.5">${acc.email}</p>
                         </div>
                         <button onclick="copyText('${acc.username}:${acc.password}', '아이디:비밀번호')" 
-                                class="px-2.5 py-1.5 bg-[#ff4655] hover:bg-red-600 text-white rounded-lg text-xs font-bold flex items-center space-x-1 btn-active shadow-md shadow-red-500/20">
+                                class="px-2.5 py-1.5 bg-[#ff4655] hover:bg-red-600 text-white rounded-lg text-xs font-bold flex items-center space-x-1 btn-active shadow-md shadow-red-500/20 flex-shrink-0">
                             <i class="fa-regular fa-clone"></i>
                             <span>ID:PW 복사</span>
                         </button>
                     </div>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
+
+                    <div class="grid grid-cols-2 gap-2 text-xs mb-2.5">
                         <button onclick="copyText('${acc.username}', '아이디')" 
                                 class="flex items-center justify-between p-2.5 bg-[#0c1218] border border-[#223242] rounded-lg hover:border-gray-500 text-left btn-active">
                             <div class="truncate mr-1">
@@ -303,14 +626,52 @@
                                 class="flex items-center justify-between p-2.5 bg-[#0c1218] border border-[#223242] rounded-lg hover:border-gray-500 text-left btn-active">
                             <div class="truncate mr-1">
                                 <span class="text-[10px] text-gray-500 block">비밀번호</span>
-                                <span class="font-mono text-gray-200 truncate">${acc.password}</span>
+                                <span class="font-mono text-amber-400 font-bold truncate">${acc.password}</span>
                             </div>
                             <i class="fa-regular fa-copy text-gray-400 text-xs flex-shrink-0"></i>
                         </button>
                     </div>
-                    <div class="flex items-center justify-between mt-2 text-[10px] text-gray-500 pt-1">
-                        <span>생성: ${acc.created_at || '방금 전'}</span>
-                        ${bdStr ? `<span>생년월일: ${bdStr}</span>` : ''}
+
+                    <div class="bg-[#0c1218]/70 p-1.5 rounded-lg border border-[#223242] mb-2">
+                        <div class="flex items-center justify-between mb-1 px-1">
+                            <span class="text-[10px] text-gray-400 font-semibold">상태 변경:</span>
+                            <button onclick="deleteAccount('${acc.username}')" class="text-[10px] text-red-400 hover:text-red-300 flex items-center space-x-1">
+                                <i class="fa-solid fa-trash-can text-[9px]"></i>
+                                <span>삭제</span>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-5 gap-1 text-[10px]">
+                            <button onclick="updateAccountStatus('${acc.username}', 'available')" 
+                                    class="py-1 px-1 rounded text-center font-bold ${tag === 'available' ? 'bg-emerald-500 text-white shadow' : 'bg-[#15202b] text-gray-400 hover:text-emerald-400 border border-[#223242]'} btn-active">
+                                미사용
+                            </button>
+                            <button onclick="updateAccountStatus('${acc.username}', 'in_use')" 
+                                    class="py-1 px-1 rounded text-center font-bold ${tag === 'in_use' ? 'bg-sky-500 text-white shadow' : 'bg-[#15202b] text-gray-400 hover:text-sky-400 border border-[#223242]'} btn-active">
+                                사용중
+                            </button>
+                            <button onclick="updateAccountStatus('${acc.username}', 'shared')" 
+                                    class="py-1 px-1 rounded text-center font-bold ${tag === 'shared' ? 'bg-purple-500 text-white shadow' : 'bg-[#15202b] text-gray-400 hover:text-purple-400 border border-[#223242]'} btn-active">
+                                타인사용
+                            </button>
+                            <button onclick="updateAccountStatus('${acc.username}', 'used')" 
+                                    class="py-1 px-1 rounded text-center font-bold ${tag === 'used' ? 'bg-gray-500 text-white shadow' : 'bg-[#15202b] text-gray-400 hover:text-gray-200 border border-[#223242]'} btn-active">
+                                완료
+                            </button>
+                            <button onclick="updateAccountStatus('${acc.username}', 'banned')" 
+                                    class="py-1 px-1 rounded text-center font-bold ${tag === 'banned' ? 'bg-rose-600 text-white shadow' : 'bg-[#15202b] text-gray-400 hover:text-rose-400 border border-[#223242]'} btn-active">
+                                정지
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] pt-1">
+                        <div onclick="openMemoModal('${acc.username}', '${memo.replace(/'/g, "\\'")}')" class="cursor-pointer flex-1 flex items-center space-x-1.5 text-gray-400 hover:text-white bg-[#0c1218]/40 px-2 py-1 rounded border border-transparent hover:border-gray-700 transition mr-2">
+                            <i class="fa-solid fa-pen-to-square text-[10px] text-amber-400"></i>
+                            <span class="truncate">
+                                ${memo ? `<span class="text-amber-300 font-medium">${memo}</span>` : `<span class="text-gray-500 italic">+ 메모 남기기 (예: 철수 줌, 본캐 등)</span>`}
+                            </span>
+                        </div>
+                        <span class="text-[10px] text-gray-500 flex-shrink-0">${createdShort}</span>
                     </div>
                 </div>`;
             });
@@ -320,7 +681,8 @@
 
         // TXT 파일 다운로드
         function downloadTxt() {
-            const url = apiKey ? `/api/export?key=${encodeURIComponent(apiKey)}` : `/api/export`;
+            const tagParam = currentCategory !== "all" ? `&tag=${currentCategory}` : "";
+            const url = apiKey ? `/api/export?key=${encodeURIComponent(apiKey)}${tagParam}` : `/api/export?${tagParam.replace('&', '')}`;
             window.open(url, "_blank");
         }
 
@@ -336,7 +698,7 @@
             }
         }
 
-        // 4초마다 백그라운드 자동 갱신 (PC에서 생성 시 폰에 바로 뜸)
+        // 4초마다 백그라운드 자동 갱신
         setInterval(() => {
             fetchAccounts(false);
         }, 4000);
