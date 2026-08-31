@@ -173,17 +173,19 @@
                     <div>
                         <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
                             <!-- 상태 뱃지 -->
-                            {% if tag == 'available' %}
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🟢 미사용</span>
-                            {% elif tag == 'in_use' %}
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">🔵 사용 중</span>
-                            {% elif tag == 'shared' %}
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">🟣 타인 사용</span>
-                            {% elif tag == 'used' %}
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 border border-gray-500/30">⚪ 사용 완료</span>
-                            {% elif tag == 'banned' %}
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">🔴 정지/밴</span>
-                            {% endif %}
+                            <div class="status-badge-container">
+                                {% if tag == 'available' %}
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🟢 미사용</span>
+                                {% elif tag == 'in_use' %}
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">🔵 사용 중</span>
+                                {% elif tag == 'shared' %}
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">🟣 타인 사용</span>
+                                {% elif tag == 'used' %}
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 border border-gray-500/30">⚪ 사용 완료</span>
+                                {% elif tag == 'banned' %}
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">🔴 정지/밴</span>
+                                {% endif %}
+                            </div>
 
                             <h3 class="font-valo text-lg font-bold text-white tracking-wide leading-tight ml-1">{{ acc.username }}</h3>
                         </div>
@@ -232,23 +234,23 @@
                     </div>
                     <div class="grid grid-cols-5 gap-1 text-[10px]">
                         <button onclick="updateAccountStatus('{{ acc.username }}', 'available')" 
-                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'available' %}bg-emerald-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-emerald-400 border border-[#223242]{% endif %} btn-active">
+                                class="status-btn-available py-1 px-1 rounded text-center font-bold {% if tag == 'available' %}bg-emerald-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-emerald-400 border border-[#223242]{% endif %} btn-active">
                             미사용
                         </button>
                         <button onclick="updateAccountStatus('{{ acc.username }}', 'in_use')" 
-                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'in_use' %}bg-sky-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-sky-400 border border-[#223242]{% endif %} btn-active">
+                                class="status-btn-in_use py-1 px-1 rounded text-center font-bold {% if tag == 'in_use' %}bg-sky-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-sky-400 border border-[#223242]{% endif %} btn-active">
                             사용중
                         </button>
                         <button onclick="updateAccountStatus('{{ acc.username }}', 'shared')" 
-                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'shared' %}bg-purple-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-purple-400 border border-[#223242]{% endif %} btn-active">
+                                class="status-btn-shared py-1 px-1 rounded text-center font-bold {% if tag == 'shared' %}bg-purple-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-purple-400 border border-[#223242]{% endif %} btn-active">
                             타인사용
                         </button>
                         <button onclick="updateAccountStatus('{{ acc.username }}', 'used')" 
-                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'used' %}bg-gray-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-gray-200 border border-[#223242]{% endif %} btn-active">
+                                class="status-btn-used py-1 px-1 rounded text-center font-bold {% if tag == 'used' %}bg-gray-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-gray-200 border border-[#223242]{% endif %} btn-active">
                             완료
                         </button>
                         <button onclick="updateAccountStatus('{{ acc.username }}', 'banned')" 
-                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'banned' %}bg-rose-600 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-rose-400 border border-[#223242]{% endif %} btn-active">
+                                class="status-btn-banned py-1 px-1 rounded text-center font-bold {% if tag == 'banned' %}bg-rose-600 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-rose-400 border border-[#223242]{% endif %} btn-active">
                             정지
                         </button>
                     </div>
@@ -258,7 +260,7 @@
                 <div class="flex items-center justify-between text-[11px] pt-1">
                     <div onclick="openMemoModal('{{ acc.username }}', '{{ acc.memo or '' }}')" class="cursor-pointer flex-1 flex items-center space-x-1.5 text-gray-400 hover:text-white bg-[#0c1218]/40 px-2 py-1 rounded border border-transparent hover:border-gray-700 transition mr-2">
                         <i class="fa-solid fa-pen-to-square text-[10px] text-amber-400"></i>
-                        <span class="truncate">
+                        <span class="memo-display truncate">
                             {% if acc.memo %}
                             <span class="text-amber-300 font-medium">{{ acc.memo }}</span>
                             {% else %}
@@ -306,8 +308,8 @@
     </div>
 
     <!-- 복사/상태 알림 토스트 (Toast) -->
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#15202b] border border-[#00e676] text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center space-x-2 text-xs font-semibold opacity-0 pointer-events-none transition-all duration-300 transform translate-y-3">
-        <i class="fa-solid fa-circle-check text-[#00e676] text-sm"></i>
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#15202b] border text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center space-x-2 text-xs font-semibold opacity-0 pointer-events-none transition-all duration-300 transform translate-y-3">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-[#00e676] text-sm"></i>
         <span id="toastMsg">클립보드에 복사되었습니다!</span>
     </div>
 
@@ -317,21 +319,21 @@
         let currentCategory = "all";
         let memoTarget = "";
         let isModalOpen = false;
-        const apiKey = "{{ api_key }}";
+        const apiKey = "{{ api_key }}" || "valo2026";
 
         // 태그 정보 매핑
         const tagMeta = {
-            available: { label: "미사용", badge: "🟢 미사용", color: "emerald" },
-            in_use:    { label: "사용중", badge: "🔵 사용 중", color: "sky" },
-            shared:    { label: "타인사용", badge: "🟣 타인 사용", color: "purple" },
-            used:      { label: "완료",   badge: "⚪ 사용 완료", color: "gray" },
-            banned:    { label: "정지",   badge: "🔴 정지/밴", color: "rose" }
+            available: { label: "미사용", badge: "🟢 미사용", color: "emerald", btnClass: "bg-emerald-500 text-white shadow" },
+            in_use:    { label: "사용중", badge: "🔵 사용 중", color: "sky", btnClass: "bg-sky-500 text-white shadow" },
+            shared:    { label: "타인사용", badge: "🟣 타인 사용", color: "purple", btnClass: "bg-purple-500 text-white shadow" },
+            used:      { label: "완료",   badge: "⚪ 사용 완료", color: "gray", btnClass: "bg-gray-500 text-white shadow" },
+            banned:    { label: "정지",   badge: "🔴 정지/밴", color: "rose", btnClass: "bg-rose-600 text-white shadow" }
         };
 
         // 클립보드 복사 함수
         function copyText(text, label) {
             if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text).then(() => showToast(`${label} 복사 완료!`));
+                navigator.clipboard.writeText(text).then(() => showToast(`${label} 복사 완료!`, true));
             } else {
                 const ta = document.createElement("textarea");
                 ta.value = text;
@@ -342,7 +344,7 @@
                 ta.select();
                 document.execCommand('copy');
                 document.body.removeChild(ta);
-                showToast(`${label} 복사 완료!`);
+                showToast(`${label} 복사 완료!`, true);
             }
             if (navigator.vibrate) {
                 navigator.vibrate(40);
@@ -353,8 +355,15 @@
         function showToast(msg, isSuccess = true) {
             const toast = document.getElementById("toast");
             const toastMsg = document.getElementById("toastMsg");
+            const toastIcon = document.getElementById("toastIcon");
             toastMsg.innerText = msg;
-            toast.style.borderColor = isSuccess ? "#00e676" : "#ff4655";
+            if (isSuccess) {
+                toast.style.borderColor = "#00e676";
+                toastIcon.className = "fa-solid fa-circle-check text-[#00e676] text-sm";
+            } else {
+                toast.style.borderColor = "#ff4655";
+                toastIcon.className = "fa-solid fa-circle-xmark text-[#ff4655] text-sm";
+            }
             toast.classList.remove("opacity-0", "translate-y-3", "pointer-events-none");
             toast.classList.add("opacity-100", "translate-y-0");
 
@@ -421,12 +430,12 @@
         // 계정 상태 업데이트 (원클릭)
         async function updateAccountStatus(username, newTag) {
             try {
-                const url = apiKey ? `/api/account/update?key=${encodeURIComponent(apiKey)}` : `/api/account/update`;
+                const url = `/api/account/update`;
                 const res = await fetch(url, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        ...(apiKey ? { "x-api-key": apiKey } : {})
+                        "x-api-key": apiKey
                     },
                     body: JSON.stringify({
                         username: username,
@@ -436,14 +445,21 @@
 
                 if (res.ok) {
                     const data = await res.json();
-                    showToast(`상태가 [${tagMeta[newTag]?.badge || newTag}]로 변경되었습니다!`);
+                    showToast(`상태가 [${tagMeta[newTag]?.badge || newTag}]로 변경되었습니다!`, true);
+                    
+                    // 즉시 UI 낙관적 갱신
+                    const card = document.querySelector(`.account-card[data-user="${username}"]`);
+                    if (card) {
+                        card.setAttribute("data-tag", newTag);
+                    }
                     fetchAccounts(false);
                 } else {
-                    showToast("상태 변경 실패", false);
+                    const errData = await res.json().catch(() => ({}));
+                    showToast(`상태 변경 실패: ${errData.detail || res.statusText}`, false);
                 }
             } catch (err) {
                 console.error("상태 변경 오류:", err);
-                showToast("네트워크 오류", false);
+                showToast("네트워크 오류가 발생했습니다.", false);
             }
         }
 
@@ -473,12 +489,12 @@
             if (!memoTarget) return;
             const newMemo = document.getElementById("memoInput").value.trim();
             try {
-                const url = apiKey ? `/api/account/update?key=${encodeURIComponent(apiKey)}` : `/api/account/update`;
+                const url = `/api/account/update`;
                 const res = await fetch(url, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        ...(apiKey ? { "x-api-key": apiKey } : {})
+                        "x-api-key": apiKey
                     },
                     body: JSON.stringify({
                         username: memoTarget,
@@ -487,11 +503,12 @@
                 });
 
                 if (res.ok) {
-                    showToast("메모가 저장되었습니다!");
+                    showToast("메모가 저장되었습니다!", true);
                     closeMemoModal();
                     fetchAccounts(false);
                 } else {
-                    showToast("메모 저장 실패", false);
+                    const errData = await res.json().catch(() => ({}));
+                    showToast(`메모 저장 실패: ${errData.detail || res.statusText}`, false);
                 }
             } catch (err) {
                 console.error("메모 저장 오류:", err);
@@ -503,27 +520,38 @@
         async function deleteAccount(username) {
             if (confirm(`'${username}' 계정을 정말 삭제하시겠습니까?`)) {
                 try {
-                    const url = apiKey ? `/api/account/${encodeURIComponent(username)}?key=${encodeURIComponent(apiKey)}` : `/api/account/${encodeURIComponent(username)}`;
-                    const res = await fetch(url, { method: "DELETE" });
+                    const url = `/api/account/${encodeURIComponent(username)}`;
+                    const res = await fetch(url, {
+                        method: "DELETE",
+                        headers: {
+                            "x-api-key": apiKey
+                        }
+                    });
                     if (res.ok) {
-                        showToast(`계정이 삭제되었습니다.`);
+                        showToast(`계정이 삭제되었습니다.`, true);
                         fetchAccounts(false);
+                    } else {
+                        const errData = await res.json().catch(() => ({}));
+                        showToast(`삭제 실패: ${errData.detail || res.statusText}`, false);
                     }
                 } catch (err) {
                     console.error("삭제 실패:", err);
+                    showToast("네트워크 오류", false);
                 }
             }
         }
 
         // 계정 목록 실시간 갱신 API 호출
         async function fetchAccounts(manual = false) {
-            if (isModalOpen && !manual) return; // 모달 열려있을 때 갱신 방지
+            if (isModalOpen && !manual) return;
             const icon = document.getElementById("refreshIcon");
             if (manual && icon) icon.classList.add("animate-spin");
 
             try {
-                const url = apiKey ? `/api/accounts?key=${encodeURIComponent(apiKey)}` : `/api/accounts`;
-                const res = await fetch(url);
+                const url = `/api/accounts`;
+                const res = await fetch(url, {
+                    headers: { "x-api-key": apiKey }
+                });
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.accounts) {
@@ -589,11 +617,6 @@
                 else if (tag === 'used') badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 border border-gray-500/30">⚪ 사용 완료</span>`;
                 else if (tag === 'banned') badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">🔴 정지/밴</span>`;
 
-                // 상태 버튼 활성화 클래스
-                const btnCls = (targetTag, color) => tag === targetTag 
-                    ? `bg-${color}-500 text-white shadow font-bold` 
-                    : `bg-[#15202b] text-gray-400 hover:text-${color}-400 border border-[#223242]`;
-
                 html += `
                 <div class="account-card bg-valo-card border rounded-xl p-3.5 shadow-md transition hover:border-[#ff4655]/50 relative"
                      data-user="${acc.username}" data-email="${acc.email}" data-memo="${memo}" data-tag="${tag}">
@@ -601,7 +624,7 @@
                     <div class="flex items-start justify-between border-b border-[#223242] pb-2.5 mb-2.5">
                         <div>
                             <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                                ${badgeHtml}
+                                <div class="status-badge-container">${badgeHtml}</div>
                                 <h3 class="font-valo text-lg font-bold text-white tracking-wide leading-tight ml-1">${acc.username}</h3>
                             </div>
                             <p class="text-[11px] text-gray-400 mt-0.5">${acc.email}</p>
@@ -667,7 +690,7 @@
                     <div class="flex items-center justify-between text-[11px] pt-1">
                         <div onclick="openMemoModal('${acc.username}', '${memo.replace(/'/g, "\\'")}')" class="cursor-pointer flex-1 flex items-center space-x-1.5 text-gray-400 hover:text-white bg-[#0c1218]/40 px-2 py-1 rounded border border-transparent hover:border-gray-700 transition mr-2">
                             <i class="fa-solid fa-pen-to-square text-[10px] text-amber-400"></i>
-                            <span class="truncate">
+                            <span class="memo-display truncate">
                                 ${memo ? `<span class="text-amber-300 font-medium">${memo}</span>` : `<span class="text-gray-500 italic">+ 메모 남기기 (예: 철수 줌, 본캐 등)</span>`}
                             </span>
                         </div>
@@ -681,18 +704,21 @@
 
         // TXT 파일 다운로드
         function downloadTxt() {
-            const tagParam = currentCategory !== "all" ? `&tag=${currentCategory}` : "";
-            const url = apiKey ? `/api/export?key=${encodeURIComponent(apiKey)}${tagParam}` : `/api/export?${tagParam.replace('&', '')}`;
+            const tagParam = currentCategory !== "all" ? `?tag=${currentCategory}` : "";
+            const url = `/api/export${tagParam}`;
             window.open(url, "_blank");
         }
 
         // 기록 초기화 확인
         async function confirmClear() {
             if (confirm("정말로 클라우드에 저장된 모든 계정 기록을 삭제하시겠습니까?")) {
-                const url = apiKey ? `/api/clear?key=${encodeURIComponent(apiKey)}` : `/api/clear`;
-                const res = await fetch(url, { method: "POST" });
+                const url = `/api/clear`;
+                const res = await fetch(url, { 
+                    method: "POST",
+                    headers: { "x-api-key": apiKey }
+                });
                 if (res.ok) {
-                    showToast("기록이 모두 초기화되었습니다.");
+                    showToast("기록이 모두 초기화되었습니다.", true);
                     fetchAccounts();
                 }
             }
