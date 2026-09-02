@@ -48,6 +48,7 @@ class LicenseCreateRequest(BaseModel):
     key: Optional[str] = None
     memo: Optional[str] = "일반 사용자"
     days: Optional[int] = 30  # None or 0 for lifetime
+    hwid_lock: Optional[bool] = True  # True: 1PC 하드락, False: 하드락 없음(자유 PC)
 
 class LicenseActionRequest(BaseModel):
     key: str
@@ -292,6 +293,22 @@ async def api_verify_license(req: LicenseVerifyRequest):
             pass
 
     # 하드락(HWID) 검증 및 최초 등록
+    hwid_lock_enabled = matched.get("hwid_lock", True)
+
+    if not hwid_lock_enabled:
+        # 하드락 없는 자유 라이센스 키 (어떤 PC에서나 제한 없이 이용 가능)
+        matched["last_used_at"] = now.isoformat(timespec="seconds")
+        save_licenses(licenses)
+        return {
+            "valid": True,
+            "message": "라이센스 인증 성공 (하드락 미적용 / 자유 이용 키)",
+            "key": matched["key"],
+            "memo": matched.get("memo", ""),
+            "expires_at": matched.get("expires_at"),
+            "hwid_lock": False,
+            "hwid": None
+        }
+
     saved_hwid = matched.get("hwid")
     if not saved_hwid:
         # 최초 인증: 현재 PC의 HWID로 영구 잠금
@@ -305,6 +322,7 @@ async def api_verify_license(req: LicenseVerifyRequest):
             "memo": matched.get("memo", ""),
             "expires_at": matched.get("expires_at"),
             "hwid": clean_hwid,
+            "hwid_lock": True,
             "first_activated": True
         }
 
@@ -319,6 +337,7 @@ async def api_verify_license(req: LicenseVerifyRequest):
             "memo": matched.get("memo", ""),
             "expires_at": matched.get("expires_at"),
             "hwid": clean_hwid,
+            "hwid_lock": True,
             "first_activated": False
         }
     else:
@@ -350,19 +369,42 @@ async def api_create_license(req: LicenseCreateRequest, auth: bool = Depends(ver
     if req.days and req.days > 0:
         expires_at = (now + datetime.timedelta(days=req.days)).isoformat(timespec="seconds")
 
+    is_hwid_locked = req.hwid_lock if (req.hwid_lock is not None) else True
+
     new_lic = {
         "key": key,
         "memo": req.memo.strip() if req.memo else "일반 사용자",
         "status": "active",
         "hwid": None,
+        "hwid_lock": is_hwid_locked,
         "expires_at": expires_at,
         "created_at": now.isoformat(timespec="seconds"),
         "last_used_at": None,
-        "max_activations": 1
+        "max_activations": 1 if is_hwid_locked else 999
     }
     licenses.append(new_lic)
     save_licenses(licenses)
-    return {"status": "ok", "message": f"라이센스 키 '{key}'가 생성되었습니다.", "license": new_lic}
+    mode_str = "하드락 적용 (1PC 전용)" if is_hwid_locked else "하드락 미적용 (어디서나 자유 이용)"
+    return {"status": "ok", "message": f"라이센스 키 '{key}'가 생성되었습니다. ({mode_str})", "license": new_lic}
+
+@app.post("/api/license/toggle_hwid_lock")
+async def api_toggle_hwid_lock(req: LicenseActionRequest, auth: bool = Depends(verify_key)):
+    """하드락 잠금 켜기/끄기 토글"""
+    licenses = load_licenses()
+    target = None
+    for lic in licenses:
+        if lic.get("key", "").upper() == req.key.strip().upper():
+            curr = lic.get("hwid_lock", True)
+            lic["hwid_lock"] = not curr
+            if not lic["hwid_lock"]:
+                lic["hwid"] = None
+            target = lic
+            break
+    if not target:
+        raise HTTPException(status_code=404, detail="라이센스를 찾을 수 없습니다.")
+    save_licenses(licenses)
+    mode_label = "하드락 잠금 활성화 (1PC 전용)" if target["hwid_lock"] else "하드락 잠금 해제 (자유 PC 이용)"
+    return {"status": "ok", "message": f"'{target['key']}' 설정이 '{mode_label}'(으)로 변경되었습니다.", "license": target}
 
 @app.post("/api/license/reset_hwid")
 async def api_reset_hwid(req: LicenseActionRequest, auth: bool = Depends(verify_key)):
