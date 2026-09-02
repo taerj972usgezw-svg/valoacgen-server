@@ -80,15 +80,19 @@
             </div>
         </div>
 
-        <!-- 상단 2분할 메인 네비게이션 탭 -->
-        <div class="max-w-2xl mx-auto mt-2.5 grid grid-cols-2 gap-2 p-1 bg-[#0d141d] rounded-xl border border-[#1e2c3a]">
-            <button id="navTabAccounts" onclick="switchMainTab('accounts')" class="py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 bg-[#ff4655] text-white shadow-md shadow-red-500/20">
+        <!-- 상단 3분할 메인 네비게이션 탭 -->
+        <div class="max-w-2xl mx-auto mt-2.5 grid grid-cols-3 gap-1.5 p-1 bg-[#0d141d] rounded-xl border border-[#1e2c3a]">
+            <button id="navTabAccounts" onclick="switchMainTab('accounts')" class="py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-1.5 bg-[#ff4655] text-white shadow-md shadow-red-500/20">
                 <i class="fa-solid fa-users"></i>
-                <span>계정 보관함 (<span id="tabCountAccounts">{{ accounts|length }}</span>)</span>
+                <span>계정 (<span id="tabCountAccounts">{{ accounts|length }}</span>)</span>
             </button>
-            <button id="navTabLicenses" onclick="switchMainTab('licenses')" class="py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 text-gray-400 hover:text-white">
+            <button id="navTabLicenses" onclick="switchMainTab('licenses')" class="py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-1.5 text-gray-400 hover:text-white">
                 <i class="fa-solid fa-key"></i>
-                <span>라이센스 & 하드락 (<span id="tabCountLicenses">{{ licenses|length }}</span>)</span>
+                <span>라이센스 (<span id="tabCountLicenses">{{ licenses|length }}</span>)</span>
+            </button>
+            <button id="navTabUpdates" onclick="switchMainTab('updates')" class="py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-1.5 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>EXE 배포</span>
             </button>
         </div>
     </header>
@@ -215,6 +219,99 @@
             </div>
             <p class="text-sm font-semibold text-gray-400">발급된 라이센스 키가 없습니다</p>
             <p class="text-xs text-gray-500 mt-1">상단의 [+ 키 발급] 버튼을 눌러 새 라이센스를 생성하세요.</p>
+        </div>
+    </main>
+
+    <!-- 3. 프로그램 EXE 자동 배포 뷰 (Updates & Deploy View) -->
+    <main id="viewUpdates" class="hidden max-w-2xl mx-auto w-full px-4 pt-3 flex-1">
+        <!-- 현재 배포 중인 라이브 버전 카드 -->
+        <div class="bg-valo-card border rounded-2xl p-4 mb-4 shadow-xl">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm shadow-md shadow-indigo-500/30">
+                        <i class="fa-solid fa-cloud-arrow-down"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">현재 배포 중인 최신 버전</h3>
+                        <p class="text-[11px] text-gray-400">클라이언트 실행 시 자동으로 감지 및 다운로드되는 버전</p>
+                    </div>
+                </div>
+                <span class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" id="liveVersionBadge">
+                    v{{ version_info.version }}
+                </span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 p-3 bg-[#080c10] rounded-xl border border-[#1e2c3a] mb-3 text-center">
+                <div>
+                    <span class="text-[10px] text-gray-500">배포 파일명</span>
+                    <p class="text-xs font-mono font-semibold text-gray-300 truncate" id="liveFilename">{{ version_info.filename }}</p>
+                </div>
+                <div>
+                    <span class="text-[10px] text-gray-500">파일 용량</span>
+                    <p class="text-xs font-mono font-semibold text-emerald-400" id="liveFilesize">{{ version_info.size_mb }}</p>
+                </div>
+                <div>
+                    <span class="text-[10px] text-gray-500">마지막 배포 일시</span>
+                    <p class="text-xs font-mono text-gray-400" id="liveUpdated">{{ version_info.updated_at[:16] }}</p>
+                </div>
+            </div>
+
+            <div class="p-2.5 bg-[#0d141d] rounded-xl border border-gray-800 text-xs text-gray-300 mb-3">
+                <span class="text-indigo-400 font-semibold mr-1">📝 패치노트:</span>
+                <span id="liveChangelog">{{ version_info.changelog }}</span>
+            </div>
+
+            <a href="/download/latest" download class="w-full py-2.5 bg-[#1a2536] hover:bg-[#223147] border border-[#2b3d54] text-indigo-300 hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 transition btn-active">
+                <i class="fa-solid fa-download"></i>
+                <span>현재 배포본(EXE) 직접 다운로드</span>
+            </a>
+        </div>
+
+        <!-- 새 EXE 파일 업로드 & 즉시 배포 카드 -->
+        <div class="bg-valo-card border border-indigo-500/30 rounded-2xl p-4 shadow-xl">
+            <h3 class="text-sm font-bold text-white flex items-center mb-1">
+                <i class="fa-solid fa-cloud-arrow-up text-indigo-400 mr-2"></i>새 EXE 업로드 & 원클릭 배포
+            </h3>
+            <p class="text-[11px] text-gray-400 mb-4">새로 빌드된 .exe 파일을 업로드하면, 사용자가 기존 프로그램을 켤 때 즉시 자동 업데이트됩니다.</p>
+
+            <form id="uploadExeForm" onsubmit="handleExeUpload(event)" class="space-y-3">
+                <!-- 파일 선택 드래그 앤 드롭 영역 -->
+                <div onclick="document.getElementById('exeFileInput').click()" class="border-2 border-dashed border-indigo-500/40 hover:border-indigo-400 bg-[#080c10] rounded-xl p-6 text-center cursor-pointer transition">
+                    <input type="file" id="exeFileInput" accept=".exe" class="hidden" onchange="onExeFileSelected(event)" required>
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 text-xl mx-auto mb-2">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                    </div>
+                    <p class="text-xs font-bold text-white" id="selectedFileText">클릭하여 최신 ValorantGenerator_v4.0.exe 선택</p>
+                    <p class="text-[10px] text-gray-500 mt-1">또는 파일을 여기로 드래그 앤 드롭하세요 (.exe 전용)</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-400 mb-1">새 버전 번호</label>
+                        <input type="text" id="newVersionInput" placeholder="예: v6.1" class="w-full bg-[#080c10] border border-[#1e2c3a] rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-400 mb-1">업데이트 패치노트</label>
+                        <input type="text" id="newChangelogInput" placeholder="예: 속도 개선 및 바이패스 패치" class="w-full bg-[#080c10] border border-[#1e2c3a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <!-- 업로드 진행률 바 -->
+                <div id="uploadProgressBox" class="hidden space-y-1 pt-1">
+                    <div class="flex justify-between text-[11px] text-gray-400 font-mono">
+                        <span id="uploadStatusText">서버로 업로드 중...</span>
+                        <span id="uploadPercentText">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                        <div id="uploadProgressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-150" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <button type="submit" id="btnSubmitExe" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/25 flex items-center justify-center space-x-2 transition btn-active">
+                    <i class="fa-solid fa-rocket"></i>
+                    <span>최신 EXE 즉시 서버 배포하기</span>
+                </button>
+            </form>
         </div>
     </main>
 
