@@ -408,27 +408,122 @@
             'banned':    { label: '정지', color: 'red',    icon: 'fa-ban' }
         };
 
-        // ── 메인 탭 전환 (계정 vs 라이센스) ────────────────────────────────────
+        // ── 메인 탭 전환 (계정 vs 라이센스 vs EXE 배포) ────────────────────────────
         function switchMainTab(tab) {
             currentTab = tab;
             const viewAcc = document.getElementById('viewAccounts');
             const viewLic = document.getElementById('viewLicenses');
+            const viewUpd = document.getElementById('viewUpdates');
             const btnAcc = document.getElementById('navTabAccounts');
             const btnLic = document.getElementById('navTabLicenses');
+            const btnUpd = document.getElementById('navTabUpdates');
+
+            viewAcc.classList.add('hidden');
+            viewLic.classList.add('hidden');
+            viewUpd.classList.add('hidden');
+
+            btnAcc.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-1.5 text-gray-400 hover:text-white';
+            btnLic.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-1.5 text-gray-400 hover:text-white';
+            btnUpd.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-1.5 text-gray-400 hover:text-white';
 
             if (tab === 'accounts') {
                 viewAcc.classList.remove('hidden');
-                viewLic.classList.add('hidden');
-                btnAcc.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 bg-[#ff4655] text-white shadow-md shadow-red-500/20';
-                btnLic.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 text-gray-400 hover:text-white';
+                btnAcc.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-1.5 bg-[#ff4655] text-white shadow-md shadow-red-500/20';
                 renderAccounts();
-            } else {
-                viewAcc.classList.add('hidden');
+            } else if (tab === 'licenses') {
                 viewLic.classList.remove('hidden');
-                btnLic.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 bg-[#ff4655] text-white shadow-md shadow-red-500/20';
-                btnAcc.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 text-gray-400 hover:text-white';
+                btnLic.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-1.5 bg-[#ff4655] text-white shadow-md shadow-red-500/20';
                 renderLicenses();
+            } else if (tab === 'updates') {
+                viewUpd.classList.remove('hidden');
+                btnUpd.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-1.5 bg-indigo-600 text-white shadow-md shadow-indigo-500/20';
             }
+        }
+
+        function onExeFileSelected(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const mb = (file.size / (1024 * 1024)).toFixed(1);
+                document.getElementById('selectedFileText').innerText = `선택된 파일: ${file.name} (${mb} MB)`;
+            }
+        }
+
+        function handleExeUpload(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('exeFileInput');
+            const verInput = document.getElementById('newVersionInput');
+            const changelogInput = document.getElementById('newChangelogInput');
+            const btnSubmit = document.getElementById('btnSubmitExe');
+            const pBox = document.getElementById('uploadProgressBox');
+            const pBar = document.getElementById('uploadProgressBar');
+            const pText = document.getElementById('uploadPercentText');
+            const pStatus = document.getElementById('uploadStatusText');
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showToast('업로드할 .exe 파일을 선택해주세요', true);
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const version = verInput.value.trim();
+            const changelog = changelogInput.value.trim();
+
+            if (!version) {
+                showToast('새 버전 번호를 입력해주세요 (예: v6.1)', true);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('version', version);
+            formData.append('changelog', changelog);
+
+            pBox.classList.remove('hidden');
+            btnSubmit.disabled = true;
+            btnSubmit.classList.add('opacity-50');
+            pStatus.innerText = '서버로 업로드 중...';
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/upload_update', true);
+
+            xhr.upload.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    pBar.style.width = percent + '%';
+                    pText.innerText = percent + '%';
+                }
+            };
+
+            xhr.onload = function() {
+                btnSubmit.disabled = false;
+                btnSubmit.classList.remove('opacity-50');
+                if (xhr.status === 200) {
+                    const res = JSON.parse(xhr.responseText);
+                    pStatus.innerText = '배포 완료!';
+                    showToast(`최신 버전(${version}) 배포가 완료되었습니다!`);
+                    
+                    if (res.version_info) {
+                        document.getElementById('liveVersionBadge').innerText = 'v' + res.version_info.version;
+                        document.getElementById('liveFilename').innerText = res.version_info.filename;
+                        document.getElementById('liveFilesize').innerText = res.version_info.size_mb;
+                        document.getElementById('liveUpdated').innerText = res.version_info.updated_at.substring(0, 16);
+                        document.getElementById('liveChangelog').innerText = res.version_info.changelog;
+                    }
+                    setTimeout(() => { pBox.classList.add('hidden'); }, 2000);
+                } else {
+                    pStatus.innerText = '업로드 실패';
+                    showToast('업로드 중 오류가 발생했습니다: ' + xhr.responseText, true);
+                }
+            };
+
+            xhr.onerror = function() {
+                btnSubmit.disabled = false;
+                btnSubmit.classList.remove('opacity-50');
+                pStatus.innerText = '네트워크 통신 오류';
+                showToast('서버 통신 실패', true);
+            };
+
+            xhr.send(formData);
         }
 
         function refreshCurrentTab(manual = false) {
