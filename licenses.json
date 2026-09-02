@@ -1,0 +1,32 @@
+[
+  {
+    "key": "VALO-PRO-2026-MASTER",
+    "memo": "최고 관리자 마스터 키 (무제한)",
+    "status": "active",
+    "hwid": null,
+    "expires_at": null,
+    "created_at": "2026-09-02T12:00:00",
+    "last_used_at": "2026-09-02T14:15:32",
+    "max_activations": 1
+  },
+  {
+    "key": "VALO-VIP-TEST-7777",
+    "memo": "VIP 테스터 키 (30일권)",
+    "status": "active",
+    "hwid": null,
+    "expires_at": "2026-10-02T23:59:59",
+    "created_at": "2026-09-02T12:00:00",
+    "last_used_at": null,
+    "max_activations": 1
+  },
+  {
+    "key": "VALO-0NPF-YMSE-0ZJT",
+    "memo": "홍길동",
+    "status": "active",
+    "hwid": null,
+    "expires_at": "2026-10-02T14:15:32",
+    "created_at": "2026-09-02T14:15:32",
+    "last_used_at": null,
+    "max_activations": 1
+  }
+]
