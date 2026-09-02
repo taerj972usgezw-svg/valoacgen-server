@@ -357,6 +357,15 @@
                         <option value="0">평생 무제한 (Lifetime)</option>
                     </select>
                 </div>
+
+                <!-- 하드락(HWID) 보안 모드 -->
+                <div>
+                    <label class="block text-[11px] font-semibold text-gray-400 mb-1">하드락(HWID) 보안 모드</label>
+                    <select id="newLicHwidLock" class="w-full bg-[#080c10] border border-[#1e2c3a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ff4655]">
+                        <option value="true" selected>🔒 하드락 적용 (1대 PC 전용 영구 잠금)</option>
+                        <option value="false">🔓 하드락 없음 (모든 PC에서 자유 이용 가능)</option>
+                    </select>
+                </div>
             </div>
 
             <div class="flex space-x-2">
@@ -800,6 +809,7 @@
             container.innerHTML = filtered.map(lic => {
                 const isBanned = lic.status === 'banned';
                 const isExpired = lic.expires_at && lic.expires_at <= now;
+                const isHwidLocked = lic.hwid_lock !== false;
                 const hasHwid = !!lic.hwid;
 
                 let statusBadge = '';
@@ -812,13 +822,17 @@
                 }
 
                 let hwidBadge = '';
-                if (hasHwid) {
+                if (!isHwidLocked) {
+                    hwidBadge = `<span class="text-[11px] font-bold text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/30 flex items-center">
+                        <i class="fa-solid fa-unlock text-[9px] mr-1 text-purple-400"></i>하드락 없음 (자유 PC 이용)
+                    </span>`;
+                } else if (hasHwid) {
                     hwidBadge = `<span class="text-[11px] font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 flex items-center">
                         <i class="fa-solid fa-lock text-[9px] mr-1"></i>${escapeHtml(lic.hwid)}
                     </span>`;
                 } else {
                     hwidBadge = `<span class="text-[11px] font-medium text-gray-400 bg-gray-800/60 px-2 py-0.5 rounded border border-gray-700 flex items-center">
-                        <i class="fa-solid fa-lock-open text-[9px] mr-1 text-gray-500"></i>미등록 (첫 인증 대기)
+                        <i class="fa-solid fa-lock-open text-[9px] mr-1 text-gray-500"></i>1PC 잠금 (첫 인증 대기)
                     </span>`;
                 }
 
@@ -844,16 +858,16 @@
                             </div>
                         </div>
                         <div class="flex items-center justify-between pt-1 border-t border-gray-800/80">
-                            <span class="text-[11px] text-gray-500 font-medium">하드락 상태</span>
+                            <span class="text-[11px] text-gray-500 font-medium">하드락 모드</span>
                             ${hwidBadge}
                         </div>
                     </div>
 
                     <!-- 관리 액션 버튼 그리드 -->
                     <div class="grid grid-cols-3 gap-1.5 pt-1">
-                        <button onclick="resetLicenseHwid('${lic.key}')" class="py-1.5 bg-[#1a2634] hover:bg-blue-950/40 text-blue-400 border border-blue-500/20 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 btn-active">
-                            <i class="fa-solid fa-unlock-keyhole text-[10px]"></i>
-                            <span>하드락 해제</span>
+                        <button onclick="toggleHwidLock('${lic.key}')" class="py-1.5 bg-[#1a2634] hover:bg-purple-950/40 text-purple-300 border border-purple-500/20 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 btn-active" title="하드락 모드 전환">
+                            <i class="fa-solid ${isHwidLocked ? 'fa-unlock' : 'fa-lock'} text-[10px]"></i>
+                            <span>${isHwidLocked ? '하드락 해제' : '하드락 켜기'}</span>
                         </button>
                         <button onclick="toggleLicenseStatus('${lic.key}')" class="py-1.5 bg-[#1a2634] hover:bg-red-950/40 ${isBanned ? 'text-emerald-400 border-emerald-500/20' : 'text-red-400 border-red-500/20'} border rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 btn-active">
                             <i class="fa-solid ${isBanned ? 'fa-check text-[10px]' : 'fa-ban text-[10px]'}"></i>
@@ -924,12 +938,13 @@
             const key = document.getElementById('newLicKey').value.trim();
             const memo = document.getElementById('newLicMemo').value.trim();
             const days = parseInt(document.getElementById('newLicDays').value, 10);
+            const isHwidLock = document.getElementById('newLicHwidLock').value === 'true';
 
             try {
                 const res = await fetch('/api/license/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-api-key': 'valo2026' },
-                    body: JSON.stringify({ key: key || null, memo: memo || '일반 사용자', days: days })
+                    body: JSON.stringify({ key: key || null, memo: memo || '일반 사용자', days: days, hwid_lock: isHwidLock })
                 });
                 const data = await res.json();
                 if (res.ok) {
@@ -941,6 +956,23 @@
                 }
             } catch (e) {
                 alert('서버 통신 오류');
+            }
+        }
+
+        async function toggleHwidLock(key) {
+            try {
+                const res = await fetch('/api/license/toggle_hwid_lock', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': 'valo2026' },
+                    body: JSON.stringify({ key: key })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    showToast(data.message || '하드락 설정이 변경되었습니다');
+                    fetchLicenses();
+                }
+            } catch (e) {
+                showToast('하드락 설정 변경 실패', true);
             }
         }
 
