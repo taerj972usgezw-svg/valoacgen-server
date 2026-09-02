@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VALORANT 계정 관리 대시보드</title>
+    <title>VALORANT v4.0 PRO 대시보드 & 라이센스 매니저</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -12,7 +12,7 @@
         
         body {
             font-family: 'Noto Sans KR', sans-serif;
-            background-color: #0c1218;
+            background-color: #080c10;
             color: #ece8e1;
             -webkit-tap-highlight-color: transparent;
         }
@@ -26,14 +26,12 @@
             background-color: #ff4655;
         }
         .bg-valo-card {
-            background-color: #15202b;
-            border-color: #223242;
+            background-color: #111a24;
+            border-color: #1e2c3a;
         }
-        /* 터치 반응 애니메이션 */
         .btn-active:active {
             transform: scale(0.96);
         }
-        /* 스크롤바 숨김 */
         ::-webkit-scrollbar {
             width: 4px;
             height: 4px;
@@ -51,18 +49,21 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col pb-16">
+<body class="min-h-screen flex flex-col pb-20 bg-[#080c10]">
 
     <!-- 상단 고정 헤더 -->
-    <header class="sticky top-0 z-30 bg-[#0c1218]/95 backdrop-blur-md border-b border-[#223242] px-4 py-3 shadow-lg">
-        <div class="max-w-xl mx-auto flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-lg bg-[#ff4655] flex items-center justify-center shadow-lg shadow-red-500/20">
-                    <i class="fa-solid fa-bolt text-white text-lg"></i>
+    <header class="sticky top-0 z-30 bg-[#080c10]/95 backdrop-blur-md border-b border-[#1e2c3a] px-4 py-3 shadow-lg">
+        <div class="max-w-2xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#ff4655] to-[#b31928] flex items-center justify-center shadow-lg shadow-red-500/25">
+                    <i class="fa-solid fa-shield-halved text-white text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="font-valo text-xl font-bold tracking-wider leading-none">VALORANT <span class="text-xs bg-[#ff4655] px-1.5 py-0.5 rounded text-white font-mono">PRO</span></h1>
-                    <p class="text-[10px] text-gray-400">계정 상태 분류 및 실시간 보관함</p>
+                    <div class="flex items-center space-x-1.5">
+                        <h1 class="font-valo text-xl font-bold tracking-wider leading-none">VALORANT</h1>
+                        <span class="text-[10px] bg-[#ff4655] px-1.5 py-0.5 rounded font-mono font-bold text-white shadow-sm shadow-red-500/40">v4.0 PRO</span>
+                    </div>
+                    <p class="text-[11px] text-gray-400">클라우드 계정 & 하드락 라이센스 센터</p>
                 </div>
             </div>
             
@@ -70,669 +71,776 @@
                 <!-- 실시간 상태 뱃지 -->
                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     <span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                    <span id="liveBadge">실시간</span>
+                    <span id="liveBadge">온라인</span>
                 </span>
-                <!-- 수동 새로고침 버튼 -->
-                <button onclick="fetchAccounts(true)" class="p-2 rounded-lg bg-[#15202b] border border-[#223242] text-gray-300 hover:text-white btn-active">
+                <!-- 수동 새로고침 -->
+                <button onclick="refreshCurrentTab(true)" class="p-2 rounded-xl bg-[#111a24] border border-[#1e2c3a] text-gray-300 hover:text-white btn-active shadow-sm">
                     <i id="refreshIcon" class="fa-solid fa-rotate text-sm"></i>
                 </button>
             </div>
         </div>
+
+        <!-- 상단 2분할 메인 네비게이션 탭 -->
+        <div class="max-w-2xl mx-auto mt-2.5 grid grid-cols-2 gap-2 p-1 bg-[#0d141d] rounded-xl border border-[#1e2c3a]">
+            <button id="navTabAccounts" onclick="switchMainTab('accounts')" class="py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 bg-[#ff4655] text-white shadow-md shadow-red-500/20">
+                <i class="fa-solid fa-users"></i>
+                <span>계정 보관함 (<span id="tabCountAccounts">{{ accounts|length }}</span>)</span>
+            </button>
+            <button id="navTabLicenses" onclick="switchMainTab('licenses')" class="py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-key"></i>
+                <span>라이센스 & 하드락 (<span id="tabCountLicenses">{{ licenses|length }}</span>)</span>
+            </button>
+        </div>
     </header>
 
-    <!-- 메인 컨텐츠 영역 -->
-    <main class="max-w-xl mx-auto w-full px-4 pt-3 flex-1">
-
+    <!-- 1. 계정 보관함 뷰 (Accounts View) -->
+    <main id="viewAccounts" class="max-w-2xl mx-auto w-full px-4 pt-3 flex-1">
         <!-- 4개 통계 카드 그리드 -->
         <div class="grid grid-cols-4 gap-2 mb-3">
-            <!-- 전체 -->
             <div onclick="selectCategory('all')" class="cursor-pointer bg-valo-card border rounded-xl p-2.5 flex flex-col justify-between hover:border-gray-500 transition">
                 <span class="text-[10px] text-gray-400 font-medium">총 계정</span>
                 <span id="statTotal" class="font-valo text-2xl font-bold text-white leading-none mt-1">{{ stats.total }}</span>
             </div>
-            <!-- 미사용 (사용가능) -->
             <div onclick="selectCategory('available')" class="cursor-pointer bg-valo-card border border-emerald-500/30 rounded-xl p-2.5 flex flex-col justify-between hover:border-emerald-400 transition bg-emerald-950/10">
                 <span class="text-[10px] text-emerald-400 font-medium flex items-center">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1"></span>미사용
                 </span>
                 <span id="statAvailable" class="font-valo text-2xl font-bold text-emerald-300 leading-none mt-1">{{ stats.available }}</span>
             </div>
-            <!-- 사용 중 / 타인 사용 -->
-            <div onclick="selectCategory('in_use')" class="cursor-pointer bg-valo-card border border-sky-500/30 rounded-xl p-2.5 flex flex-col justify-between hover:border-sky-400 transition bg-sky-950/10">
-                <span class="text-[10px] text-sky-400 font-medium flex items-center">
-                    <span class="w-1.5 h-1.5 rounded-full bg-sky-400 mr-1"></span>사용중
+            <div onclick="selectCategory('in_use')" class="cursor-pointer bg-valo-card border border-blue-500/30 rounded-xl p-2.5 flex flex-col justify-between hover:border-blue-400 transition bg-blue-950/10">
+                <span class="text-[10px] text-blue-400 font-medium flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-1"></span>사용중
                 </span>
-                <span id="statInUse" class="font-valo text-2xl font-bold text-sky-300 leading-none mt-1">{{ stats.in_use + stats.shared }}</span>
+                <span id="statInUse" class="font-valo text-2xl font-bold text-blue-300 leading-none mt-1">{{ stats.in_use }}</span>
             </div>
-            <!-- 정지 / 밴 -->
-            <div onclick="selectCategory('banned')" class="cursor-pointer bg-valo-card border border-rose-500/30 rounded-xl p-2.5 flex flex-col justify-between hover:border-rose-400 transition bg-rose-950/10">
-                <span class="text-[10px] text-rose-400 font-medium flex items-center">
-                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1"></span>정지/밴
+            <div onclick="selectCategory('shared')" class="cursor-pointer bg-valo-card border border-purple-500/30 rounded-xl p-2.5 flex flex-col justify-between hover:border-purple-400 transition bg-purple-950/10">
+                <span class="text-[10px] text-purple-400 font-medium flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400 mr-1"></span>타인사용
                 </span>
-                <span id="statBanned" class="font-valo text-2xl font-bold text-rose-400 leading-none mt-1">{{ stats.banned }}</span>
+                <span id="statShared" class="font-valo text-2xl font-bold text-purple-300 leading-none mt-1">{{ stats.shared }}</span>
             </div>
         </div>
 
-        <!-- 액션 버튼 바 -->
-        <div class="flex space-x-2 mb-3">
-            <button onclick="downloadTxt()" class="flex-1 py-2 px-3 bg-[#15202b] hover:bg-[#1e2d3d] text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 btn-active">
-                <i class="fa-solid fa-download"></i>
-                <span>TXT 다운로드</span>
+        <!-- 5개 카테고리 탭 -->
+        <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-1 mb-3">
+            <button onclick="selectCategory('all')" id="catTab-all" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#ff4655] text-white">
+                전체 <span id="count-all" class="ml-1 opacity-80">{{ stats.total }}</span>
             </button>
-            <button onclick="confirmClear()" class="py-2 px-3 bg-[#15202b] hover:bg-red-950/50 text-red-400 border border-red-900/40 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 btn-active">
-                <i class="fa-solid fa-trash-can"></i>
-                <span>전체 초기화</span>
+            <button onclick="selectCategory('available')" id="catTab-available" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#111a24] text-emerald-400 border border-[#1e2c3a]">
+                🟢 미사용 <span id="count-available" class="ml-1 opacity-80">{{ stats.available }}</span>
             </button>
-        </div>
-
-        <!-- 검색창 -->
-        <div class="relative mb-3">
-            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-            <input type="text" id="searchInput" oninput="filterAccounts()" placeholder="아이디, 이메일, 메모 검색..." 
-                   class="w-full bg-[#15202b] border border-[#223242] text-sm text-white placeholder-gray-500 rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#ff4655] transition shadow-inner">
-        </div>
-
-        <!-- 카테고리 필터 탭 바 (가로 스크롤) -->
-        <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-2 mb-3">
-            <button onclick="selectCategory('all')" id="tab-all" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-[#ff4655] text-white border border-[#ff4655] shadow-sm flex items-center space-x-1 btn-active">
-                <span>전체</span>
-                <span id="tabCount-all" class="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono">{{ stats.total }}</span>
+            <button onclick="selectCategory('in_use')" id="catTab-in_use" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#111a24] text-blue-400 border border-[#1e2c3a]">
+                🔵 사용중 <span id="count-in_use" class="ml-1 opacity-80">{{ stats.in_use }}</span>
             </button>
-            <button onclick="selectCategory('available')" id="tab-available" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-emerald-400 border border-[#223242] hover:border-emerald-500/50 flex items-center space-x-1 btn-active">
-                <span>🟢 미사용</span>
-                <span id="tabCount-available" class="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 font-mono">{{ stats.available }}</span>
+            <button onclick="selectCategory('shared')" id="catTab-shared" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#111a24] text-purple-400 border border-[#1e2c3a]">
+                🟣 타인사용 <span id="count-shared" class="ml-1 opacity-80">{{ stats.shared }}</span>
             </button>
-            <button onclick="selectCategory('in_use')" id="tab-in_use" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-sky-400 border border-[#223242] hover:border-sky-500/50 flex items-center space-x-1 btn-active">
-                <span>🔵 사용 중</span>
-                <span id="tabCount-in_use" class="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-500/20 font-mono">{{ stats.in_use }}</span>
+            <button onclick="selectCategory('used')" id="catTab-used" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#111a24] text-gray-400 border border-[#1e2c3a]">
+                ⚪ 완료 <span id="count-used" class="ml-1 opacity-80">{{ stats.used }}</span>
             </button>
-            <button onclick="selectCategory('shared')" id="tab-shared" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-purple-400 border border-[#223242] hover:border-purple-500/50 flex items-center space-x-1 btn-active">
-                <span>🟣 타인 사용</span>
-                <span id="tabCount-shared" class="text-[10px] px-1.5 py-0.2 rounded-full bg-purple-500/20 font-mono">{{ stats.shared }}</span>
-            </button>
-            <button onclick="selectCategory('used')" id="tab-used" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-gray-400 border border-[#223242] hover:border-gray-500 flex items-center space-x-1 btn-active">
-                <span>⚪ 사용 완료</span>
-                <span id="tabCount-used" class="text-[10px] px-1.5 py-0.2 rounded-full bg-gray-500/20 font-mono">{{ stats.used }}</span>
-            </button>
-            <button onclick="selectCategory('banned')" id="tab-banned" class="cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-rose-400 border border-[#223242] hover:border-rose-500/50 flex items-center space-x-1 btn-active">
-                <span>🔴 정지/밴</span>
-                <span id="tabCount-banned" class="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-500/20 font-mono">{{ stats.banned }}</span>
+            <button onclick="selectCategory('banned')" id="catTab-banned" class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#111a24] text-red-400 border border-[#1e2c3a]">
+                🔴 정지 <span id="count-banned" class="ml-1 opacity-80">{{ stats.banned }}</span>
             </button>
         </div>
 
-        <!-- 계정 목록 컨테이너 -->
-        <div id="accountList" class="space-y-3">
-            <!-- 초기 렌더링 -->
-            {% for acc in accounts %}
-            {% set tag = acc.status_tag or 'available' %}
-            <div class="account-card bg-valo-card border rounded-xl p-3.5 shadow-md transition hover:border-[#ff4655]/50 relative"
-                 data-user="{{ acc.username }}" data-email="{{ acc.email }}" data-memo="{{ acc.memo or '' }}" data-tag="{{ tag }}">
-                
-                <div class="flex items-start justify-between border-b border-[#223242] pb-2.5 mb-2.5">
-                    <div>
-                        <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                            <div class="status-badge-container">
-                                {% if tag == 'available' %}
-                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🟢 미사용</span>
-                                {% elif tag == 'in_use' %}
-                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">🔵 사용 중</span>
-                                {% elif tag == 'shared' %}
-                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">🟣 타인 사용</span>
-                                {% elif tag == 'used' %}
-                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 border border-gray-500/30">⚪ 사용 완료</span>
-                                {% elif tag == 'banned' %}
-                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">🔴 정지/밴</span>
-                                {% endif %}
-                            </div>
-
-                            <h3 class="font-valo text-lg font-bold text-white tracking-wide leading-tight ml-1">{{ acc.username }}</h3>
-                        </div>
-                        <p class="text-[11px] text-gray-400 mt-0.5">{{ acc.email }}</p>
-                    </div>
-
-                    <button onclick="copyText('{{ acc.username }}:{{ acc.password }}', '아이디:비밀번호')" 
-                            class="px-2.5 py-1.5 bg-[#ff4655] hover:bg-red-600 text-white rounded-lg text-xs font-bold flex items-center space-x-1 btn-active shadow-md shadow-red-500/20 flex-shrink-0">
-                        <i class="fa-regular fa-clone"></i>
-                        <span>ID:PW 복사</span>
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2 text-xs mb-2.5">
-                    <button onclick="copyText('{{ acc.username }}', '아이디')" 
-                            class="flex items-center justify-between p-2.5 bg-[#0c1218] border border-[#223242] rounded-lg hover:border-gray-500 text-left btn-active">
-                        <div class="truncate mr-1">
-                            <span class="text-[10px] text-gray-500 block">아이디</span>
-                            <span class="font-mono text-gray-200 truncate">{{ acc.username }}</span>
-                        </div>
-                        <i class="fa-regular fa-copy text-gray-400 text-xs flex-shrink-0"></i>
-                    </button>
-
-                    <button onclick="copyText('{{ acc.password }}', '비밀번호')" 
-                            class="flex items-center justify-between p-2.5 bg-[#0c1218] border border-[#223242] rounded-lg hover:border-gray-500 text-left btn-active">
-                        <div class="truncate mr-1">
-                            <span class="text-[10px] text-gray-500 block">비밀번호</span>
-                            <span class="font-mono text-amber-400 font-bold truncate">{{ acc.password }}</span>
-                        </div>
-                        <i class="fa-regular fa-copy text-gray-400 text-xs flex-shrink-0"></i>
-                    </button>
-                </div>
-
-                <div class="bg-[#0c1218]/70 p-1.5 rounded-lg border border-[#223242] mb-2">
-                    <div class="flex items-center justify-between mb-1 px-1">
-                        <span class="text-[10px] text-gray-400 font-semibold">상태 변경:</span>
-                        <button onclick="deleteAccount('${acc.username}')" class="text-[10px] text-red-400 hover:text-red-300 flex items-center space-x-1">
-                            <i class="fa-solid fa-trash-can text-[9px]"></i>
-                            <span>삭제</span>
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-5 gap-1 text-[10px]">
-                        <button onclick="updateAccountStatus('{{ acc.username }}', 'available')" 
-                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'available' %}bg-emerald-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-emerald-400 border border-[#223242]{% endif %} btn-active">
-                            미사용
-                        </button>
-                        <button onclick="updateAccountStatus('{{ acc.username }}', 'in_use')" 
-                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'in_use' %}bg-sky-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-sky-400 border border-[#223242]{% endif %} btn-active">
-                            사용중
-                        </button>
-                        <button onclick="updateAccountStatus('{{ acc.username }}', 'shared')" 
-                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'shared' %}bg-purple-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-purple-400 border border-[#223242]{% endif %} btn-active">
-                            타인사용
-                        </button>
-                        <button onclick="updateAccountStatus('{{ acc.username }}', 'used')" 
-                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'used' %}bg-gray-500 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-gray-200 border border-[#223242]{% endif %} btn-active">
-                            완료
-                        </button>
-                        <button onclick="updateAccountStatus('{{ acc.username }}', 'banned')" 
-                                class="py-1 px-1 rounded text-center font-bold {% if tag == 'banned' %}bg-rose-600 text-white shadow{% else %}bg-[#15202b] text-gray-400 hover:text-rose-400 border border-[#223242]{% endif %} btn-active">
-                            정지
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between text-[11px] pt-1">
-                    <div onclick="openMemoModal('{{ acc.username }}', '{{ acc.memo or '' }}')" class="cursor-pointer flex-1 flex items-center space-x-1.5 text-gray-400 hover:text-white bg-[#0c1218]/40 px-2 py-1 rounded border border-transparent hover:border-gray-700 transition mr-2">
-                        <i class="fa-solid fa-pen-to-square text-[10px] text-amber-400"></i>
-                        <span class="memo-display truncate">
-                            {% if acc.memo %}
-                            <span class="text-amber-300 font-medium">{{ acc.memo }}</span>
-                            {% else %}
-                            <span class="text-gray-500 italic">+ 메모 남기기 (예: 철수 줌, 본캐 등)</span>
-                            {% endif %}
-                        </span>
-                    </div>
-                    <span class="text-[10px] text-gray-500 flex-shrink-0">{{ acc.created_at[5:16] if acc.created_at else '' }}</span>
-                </div>
+        <!-- 검색바 및 내보내기 -->
+        <div class="flex items-center space-x-2 mb-3">
+            <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                <input type="text" id="searchInput" oninput="filterAccounts()" placeholder="아이디, 이메일, 메모 검색..." class="w-full bg-[#111a24] border border-[#1e2c3a] rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#ff4655]">
             </div>
-            {% else %}
-            <div id="emptyMsg" class="text-center py-16 text-gray-500 bg-valo-card border rounded-xl">
-                <i class="fa-solid fa-inbox text-4xl mb-3 text-gray-600 block"></i>
-                <p class="text-sm font-semibold">아직 생성된 계정이 없습니다.</p>
-                <p class="text-xs mt-1 text-gray-600">PC 프로그램에서 계정을 생성하면 여기에 실시간으로 나타납니다.</p>
+            <button onclick="exportCurrentView()" class="px-3 py-2 bg-[#111a24] border border-[#1e2c3a] rounded-xl text-xs font-semibold text-gray-300 hover:text-white flex items-center space-x-1.5 btn-active">
+                <i class="fa-solid fa-download text-xs text-[#ff4655]"></i>
+                <span class="hidden sm:inline">TXT</span>
+            </button>
+        </div>
+
+        <!-- 계정 카드 리스트 컨테이너 -->
+        <div id="accountsContainer" class="space-y-2.5">
+            <!-- 자바스크립트로 동적 렌더링 -->
+        </div>
+
+        <!-- 빈 목록 안내 -->
+        <div id="emptyState" class="hidden text-center py-12">
+            <div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center mx-auto mb-3 text-gray-500">
+                <i class="fa-regular fa-folder-open text-xl"></i>
             </div>
-            {% endfor %}
+            <p class="text-sm font-semibold text-gray-400">표시할 계정이 없습니다</p>
         </div>
     </main>
 
-    <!-- 메모 작성/수정 모달 -->
-    <div id="memoModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-200">
-        <div class="bg-[#15202b] border border-[#223242] rounded-2xl w-full max-w-sm p-4 shadow-2xl">
-            <div class="flex items-center justify-between mb-3 border-b border-[#223242] pb-2">
-                <div class="flex items-center space-x-1.5">
-                    <i class="fa-solid fa-pen-nib text-amber-400 text-sm"></i>
-                    <h4 class="text-sm font-bold text-white">계정 메모 작성</h4>
-                </div>
-                <button onclick="closeMemoModal()" class="text-gray-400 hover:text-white p-1">
+    <!-- 2. 라이센스 관리 뷰 (Licenses View) -->
+    <main id="viewLicenses" class="hidden max-w-2xl mx-auto w-full px-4 pt-3 flex-1">
+        <!-- 라이센스 통계 카드 -->
+        <div class="grid grid-cols-4 gap-2 mb-3">
+            <div class="bg-valo-card border rounded-xl p-2.5 flex flex-col justify-between">
+                <span class="text-[10px] text-gray-400 font-medium">총 발급</span>
+                <span id="licStatTotal" class="font-valo text-2xl font-bold text-white leading-none mt-1">{{ lic_stats.total }}</span>
+            </div>
+            <div class="bg-valo-card border border-emerald-500/30 rounded-xl p-2.5 flex flex-col justify-between bg-emerald-950/10">
+                <span class="text-[10px] text-emerald-400 font-medium">활성 키</span>
+                <span id="licStatActive" class="font-valo text-2xl font-bold text-emerald-300 leading-none mt-1">{{ lic_stats.active }}</span>
+            </div>
+            <div class="bg-valo-card border border-blue-500/30 rounded-xl p-2.5 flex flex-col justify-between bg-blue-950/10">
+                <span class="text-[10px] text-blue-400 font-medium">🔒 하드락</span>
+                <span id="licStatLocked" class="font-valo text-2xl font-bold text-blue-300 leading-none mt-1">{{ lic_stats.locked }}</span>
+            </div>
+            <div class="bg-valo-card border border-red-500/30 rounded-xl p-2.5 flex flex-col justify-between bg-red-950/10">
+                <span class="text-[10px] text-red-400 font-medium">차단/만료</span>
+                <span id="licStatBanned" class="font-valo text-2xl font-bold text-red-300 leading-none mt-1">{{ lic_stats.banned + lic_stats.expired }}</span>
+            </div>
+        </div>
+
+        <!-- 새 라이센스 발급 버튼 및 검색바 -->
+        <div class="flex items-center space-x-2 mb-3">
+            <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                <input type="text" id="licSearchInput" oninput="filterLicenses()" placeholder="키, 메모, HWID 검색..." class="w-full bg-[#111a24] border border-[#1e2c3a] rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#ff4655]">
+            </div>
+            <button onclick="openCreateLicenseModal()" class="px-3.5 py-2 bg-gradient-to-r from-[#ff4655] to-[#d93846] rounded-xl text-xs font-bold text-white flex items-center space-x-1.5 shadow-md shadow-red-500/30 btn-active">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>키 발급</span>
+            </button>
+        </div>
+
+        <!-- 라이센스 목록 컨테이너 -->
+        <div id="licensesContainer" class="space-y-2.5">
+            <!-- 자바스크립트로 동적 렌더링 -->
+        </div>
+
+        <!-- 빈 라이센스 목록 안내 -->
+        <div id="licEmptyState" class="hidden text-center py-12">
+            <div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center mx-auto mb-3 text-gray-500">
+                <i class="fa-solid fa-key text-xl"></i>
+            </div>
+            <p class="text-sm font-semibold text-gray-400">발급된 라이센스 키가 없습니다</p>
+            <p class="text-xs text-gray-500 mt-1">상단의 [+ 키 발급] 버튼을 눌러 새 라이센스를 생성하세요.</p>
+        </div>
+    </main>
+
+    <!-- 새 라이센스 생성 모달 -->
+    <div id="createLicenseModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-[#111a24] border border-[#1e2c3a] rounded-2xl w-full max-w-md p-5 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-white flex items-center">
+                    <i class="fa-solid fa-key text-[#ff4655] mr-2"></i>새 라이센스 키 발급
+                </h3>
+                <button onclick="closeCreateLicenseModal()" class="text-gray-400 hover:text-white">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
-            <p id="memoTargetUser" class="text-xs text-gray-400 mb-2 font-mono"></p>
-            <textarea id="memoInput" rows="3" placeholder="예: 누구한테 줌, 배치용, 본캐, 3일 정지 등..." 
-                      class="w-full bg-[#0c1218] border border-[#223242] text-sm text-white placeholder-gray-600 rounded-xl p-3 focus:outline-none focus:border-amber-400 transition mb-3"></textarea>
+
+            <div class="space-y-3 mb-5">
+                <!-- 라이센스 키 직접입력 또는 자동생성 -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-[11px] font-semibold text-gray-400">라이센스 키 (Key)</label>
+                        <button onclick="generateRandomKeyInput()" class="text-[10px] text-[#ff4655] hover:underline">
+                            <i class="fa-solid fa-shuffle mr-1"></i>랜덤 생성
+                        </button>
+                    </div>
+                    <input type="text" id="newLicKey" placeholder="예: VALO-7777-8888-9999 (비우면 자동생성)" class="w-full bg-[#080c10] border border-[#1e2c3a] rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-[#ff4655]">
+                </div>
+
+                <!-- 구매자 / 사용자 메모 -->
+                <div>
+                    <label class="block text-[11px] font-semibold text-gray-400 mb-1">사용자 / 구매자 메모</label>
+                    <input type="text" id="newLicMemo" placeholder="예: 홍길동 (VIP 30일권), 디스코드 유저 등" class="w-full bg-[#080c10] border border-[#1e2c3a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ff4655]">
+                </div>
+
+                <!-- 유효 기간 -->
+                <div>
+                    <label class="block text-[11px] font-semibold text-gray-400 mb-1">이용 기간</label>
+                    <select id="newLicDays" class="w-full bg-[#080c10] border border-[#1e2c3a] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ff4655]">
+                        <option value="30" selected>30일권 (1개월)</option>
+                        <option value="7">7일권 (1주일)</option>
+                        <option value="90">90일권 (3개월)</option>
+                        <option value="180">180일권 (6개월)</option>
+                        <option value="365">365일권 (1년)</option>
+                        <option value="0">평생 무제한 (Lifetime)</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="flex space-x-2">
-                <button onclick="closeMemoModal()" class="flex-1 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold btn-active">
-                    취소
-                </button>
-                <button onclick="saveMemo()" class="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold btn-active shadow-lg shadow-amber-500/20">
-                    저장하기
-                </button>
+                <button onclick="closeCreateLicenseModal()" class="flex-1 py-2.5 bg-gray-800 rounded-xl text-xs font-semibold text-gray-300 hover:text-white">취소</button>
+                <button onclick="submitCreateLicense()" class="flex-1 py-2.5 bg-[#ff4655] rounded-xl text-xs font-bold text-white shadow-lg shadow-red-500/30 btn-active">발급하기</button>
             </div>
         </div>
     </div>
 
-    <!-- 복사/상태 알림 토스트 (Toast) -->
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#15202b] border text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center space-x-2 text-xs font-semibold opacity-0 pointer-events-none transition-all duration-300 transform translate-y-3">
-        <i id="toastIcon" class="fa-solid fa-circle-check text-[#00e676] text-sm"></i>
-        <span id="toastMsg">클립보드에 복사되었습니다!</span>
+    <!-- 메모 작성/수정 모달 -->
+    <div id="memoModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-[#111a24] border border-[#1e2c3a] rounded-2xl w-full max-w-sm p-5 shadow-2xl">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold text-white flex items-center">
+                    <i class="fa-solid fa-pen text-[#ff4655] mr-2"></i>계정 메모 작성
+                </h3>
+                <button onclick="closeMemoModal()" class="text-gray-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <p id="modalUsername" class="text-xs text-gray-400 font-mono mb-3"></p>
+            <textarea id="modalMemoInput" rows="3" placeholder="메모를 입력하세요 (예: 본캐용, 철수 지급 등)..." class="w-full bg-[#080c10] border border-[#1e2c3a] rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#ff4655] mb-4"></textarea>
+            <div class="flex space-x-2">
+                <button onclick="closeMemoModal()" class="flex-1 py-2.5 bg-gray-800 rounded-xl text-xs font-semibold text-gray-300 hover:text-white">취소</button>
+                <button onclick="saveMemoFromModal()" class="flex-1 py-2.5 bg-[#ff4655] rounded-xl text-xs font-bold text-white shadow-lg shadow-red-500/30 btn-active">저장</button>
+            </div>
+        </div>
     </div>
 
-    <!-- 스크립트 -->
+    <!-- 토스트 알림 메시지 -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#ff4655] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl shadow-red-500/30 flex items-center space-x-2 opacity-0 pointer-events-none transition-all duration-300">
+        <i id="toastIcon" class="fa-solid fa-circle-check"></i>
+        <span id="toastMsg">복사되었습니다</span>
+    </div>
+
     <script>
-        let accountsData = [];
-        let currentCategory = "all";
-        let memoTarget = "";
-        let isModalOpen = false;
-        const apiKey = "{{ api_key }}" || "valo2026";
+        // 초기 데이터 (Jinja2 템플릿 전달)
+        let accountsData = {{ accounts | tojson | safe }};
+        let licensesData = {{ licenses | tojson | safe }};
+        let currentCategory = 'all';
+        let currentTab = 'accounts';
+        let currentEditUsername = '';
 
-        // 로컬 스토리지 캐시 로드
-        try {
-            const cached = localStorage.getItem("valo_accounts_cache");
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    accountsData = parsed;
-                }
-            }
-        } catch (e) {}
-
-        // 태그 정보 매핑
-        const tagMeta = {
-            available: { label: "미사용", badge: "🟢 미사용", color: "emerald", btnClass: "bg-emerald-500 text-white shadow" },
-            in_use:    { label: "사용중", badge: "🔵 사용 중", color: "sky", btnClass: "bg-sky-500 text-white shadow" },
-            shared:    { label: "타인사용", badge: "🟣 타인 사용", color: "purple", btnClass: "bg-purple-500 text-white shadow" },
-            used:      { label: "완료",   badge: "⚪ 사용 완료", color: "gray", btnClass: "bg-gray-500 text-white shadow" },
-            banned:    { label: "정지",   badge: "🔴 정지/밴", color: "rose", btnClass: "bg-rose-600 text-white shadow" }
+        const STATUS_MAP = {
+            'available': { label: '미사용', color: 'emerald', icon: 'fa-circle' },
+            'in_use':    { label: '사용중', color: 'blue',    icon: 'fa-user-check' },
+            'shared':    { label: '타인사용', color: 'purple', icon: 'fa-share-nodes' },
+            'used':      { label: '완료', color: 'gray',   icon: 'fa-check' },
+            'banned':    { label: '정지', color: 'red',    icon: 'fa-ban' }
         };
 
-        // 클립보드 복사 함수
-        function copyText(text, label) {
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text).then(() => showToast(`${label} 복사 완료!`, true));
+        // ── 메인 탭 전환 (계정 vs 라이센스) ────────────────────────────────────
+        function switchMainTab(tab) {
+            currentTab = tab;
+            const viewAcc = document.getElementById('viewAccounts');
+            const viewLic = document.getElementById('viewLicenses');
+            const btnAcc = document.getElementById('navTabAccounts');
+            const btnLic = document.getElementById('navTabLicenses');
+
+            if (tab === 'accounts') {
+                viewAcc.classList.remove('hidden');
+                viewLic.classList.add('hidden');
+                btnAcc.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 bg-[#ff4655] text-white shadow-md shadow-red-500/20';
+                btnLic.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 text-gray-400 hover:text-white';
+                renderAccounts();
             } else {
-                const ta = document.createElement("textarea");
-                ta.value = text;
-                ta.style.position = "fixed";
-                ta.style.left = "-9999px";
-                document.body.appendChild(ta);
-                ta.focus();
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-                showToast(`${label} 복사 완료!`, true);
-            }
-            if (navigator.vibrate) {
-                navigator.vibrate(40);
+                viewAcc.classList.add('hidden');
+                viewLic.classList.remove('hidden');
+                btnLic.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 bg-[#ff4655] text-white shadow-md shadow-red-500/20';
+                btnAcc.className = 'py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center space-x-2 text-gray-400 hover:text-white';
+                renderLicenses();
             }
         }
 
-        // 토스트 알림 표시
-        function showToast(msg, isSuccess = true) {
-            const toast = document.getElementById("toast");
-            const toastMsg = document.getElementById("toastMsg");
-            const toastIcon = document.getElementById("toastIcon");
-            toastMsg.innerText = msg;
-            if (isSuccess) {
-                toast.style.borderColor = "#00e676";
-                toastIcon.className = "fa-solid fa-circle-check text-[#00e676] text-sm";
-            } else {
-                toast.style.borderColor = "#ff4655";
-                toastIcon.className = "fa-solid fa-circle-xmark text-[#ff4655] text-sm";
+        function refreshCurrentTab(manual = false) {
+            if (manual) {
+                const icon = document.getElementById('refreshIcon');
+                icon.classList.add('fa-spin');
+                setTimeout(() => icon.classList.remove('fa-spin'), 1000);
             }
-            toast.classList.remove("opacity-0", "translate-y-3", "pointer-events-none");
-            toast.classList.add("opacity-100", "translate-y-0");
-
-            setTimeout(() => {
-                toast.classList.remove("opacity-100", "translate-y-0");
-                toast.classList.add("opacity-0", "translate-y-3", "pointer-events-none");
-            }, 1800);
+            fetchAccounts(manual);
+            fetchLicenses(manual);
         }
 
-        // 카테고리 탭 선택
+        // ── 계정 렌더링 및 기능 ──────────────────────────────────────────────
         function selectCategory(cat) {
             currentCategory = cat;
-            document.querySelectorAll(".cat-tab").forEach(tab => {
-                tab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#15202b] text-gray-400 border border-[#223242] flex items-center space-x-1 btn-active";
+            document.querySelectorAll('[id^="catTab-"]').forEach(el => {
+                el.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#111a24] text-gray-400 border border-[#1e2c3a]';
             });
-
-            const activeTab = document.getElementById(`tab-${cat}`);
+            const activeTab = document.getElementById(`catTab-${cat}`);
             if (activeTab) {
-                if (cat === "all") {
-                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-[#ff4655] text-white border border-[#ff4655] shadow-sm flex items-center space-x-1 btn-active";
-                } else if (cat === "available") {
-                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-emerald-600 text-white border border-emerald-500 shadow-sm flex items-center space-x-1 btn-active";
-                } else if (cat === "in_use") {
-                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-sky-600 text-white border border-sky-500 shadow-sm flex items-center space-x-1 btn-active";
-                } else if (cat === "shared") {
-                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-purple-600 text-white border border-purple-500 shadow-sm flex items-center space-x-1 btn-active";
-                } else if (cat === "used") {
-                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-gray-600 text-white border border-gray-500 shadow-sm flex items-center space-x-1 btn-active";
-                } else if (cat === "banned") {
-                    activeTab.className = "cat-tab px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-rose-600 text-white border border-rose-500 shadow-sm flex items-center space-x-1 btn-active";
-                }
+                activeTab.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-[#ff4655] text-white shadow-md shadow-red-500/20';
             }
-            filterAccounts();
+            renderAccounts();
         }
 
-        // 검색 및 카테고리 필터링
         function filterAccounts() {
-            const q = document.getElementById("searchInput").value.toLowerCase().trim();
-            const cards = document.querySelectorAll(".account-card");
-            let visibleCount = 0;
-            cards.forEach(card => {
-                const user = (card.getAttribute("data-user") || "").toLowerCase();
-                const email = (card.getAttribute("data-email") || "").toLowerCase();
-                const memo = (card.getAttribute("data-memo") || "").toLowerCase();
-                const tag = card.getAttribute("data-tag") || "available";
+            renderAccounts();
+        }
 
-                const matchesQuery = user.includes(q) || email.includes(q) || memo.includes(q);
-                const matchesCategory = (currentCategory === "all") || (tag === currentCategory);
+        function renderAccounts() {
+            const container = document.getElementById('accountsContainer');
+            const emptyState = document.getElementById('emptyState');
+            const searchKeyword = (document.getElementById('searchInput').value || '').trim().toLowerCase();
 
-                if (matchesQuery && matchesCategory) {
-                    card.style.display = "block";
-                    visibleCount++;
-                } else {
-                    card.style.display = "none";
+            let filtered = accountsData.filter(acc => {
+                const tag = acc.status_tag || 'available';
+                if (currentCategory !== 'all' && tag !== currentCategory) return false;
+                if (searchKeyword) {
+                    const u = (acc.username || '').toLowerCase();
+                    const e = (acc.email || '').toLowerCase();
+                    const m = (acc.memo || '').toLowerCase();
+                    if (!u.includes(searchKeyword) && !e.includes(searchKeyword) && !m.includes(searchKeyword)) {
+                        return false;
+                    }
                 }
+                return true;
             });
 
-            const emptyMsg = document.getElementById("emptyMsg");
-            if (emptyMsg) {
-                emptyMsg.style.display = (visibleCount === 0) ? "block" : "none";
-            }
-        }
+            updateStats();
+            document.getElementById('tabCountAccounts').innerText = accountsData.length;
 
-        // 계정 상태 업데이트 (원클릭)
-        async function updateAccountStatus(username, newTag) {
-            try {
-                const url = `/api/account/update`;
-                const res = await fetch(url, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "x-api-key": apiKey
-                    },
-                    body: JSON.stringify({
-                        username: username,
-                        status_tag: newTag
-                    })
-                });
-
-                if (res.ok) {
-                    showToast(`상태가 [${tagMeta[newTag]?.badge || newTag}]로 변경되었습니다!`, true);
-                    
-                    // 즉시 UI 낙관적 갱신
-                    const card = document.querySelector(`.account-card[data-user="${username}"]`);
-                    if (card) {
-                        card.setAttribute("data-tag", newTag);
-                    }
-                    fetchAccounts(false);
-                } else {
-                    const errData = await res.json().catch(() => ({}));
-                    showToast(`상태 변경 실패: ${errData.detail || res.statusText}`, false);
-                }
-            } catch (err) {
-                console.error("상태 변경 오류:", err);
-                showToast("네트워크 오류가 발생했습니다.", false);
-            }
-        }
-
-        // 메모 모달 열기
-        function openMemoModal(username, currentMemo) {
-            isModalOpen = true;
-            memoTarget = username;
-            document.getElementById("memoTargetUser").innerText = `계정: ${username}`;
-            document.getElementById("memoInput").value = currentMemo || "";
-            const modal = document.getElementById("memoModal");
-            modal.classList.remove("opacity-0", "pointer-events-none");
-            modal.classList.add("opacity-100");
-            setTimeout(() => document.getElementById("memoInput").focus(), 100);
-        }
-
-        // 메모 모달 닫기
-        function closeMemoModal() {
-            isModalOpen = false;
-            memoTarget = "";
-            const modal = document.getElementById("memoModal");
-            modal.classList.remove("opacity-100");
-            modal.classList.add("opacity-0", "pointer-events-none");
-        }
-
-        // 메모 저장
-        async function saveMemo() {
-            if (!memoTarget) return;
-            const newMemo = document.getElementById("memoInput").value.trim();
-            try {
-                const url = `/api/account/update`;
-                const res = await fetch(url, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "x-api-key": apiKey
-                    },
-                    body: JSON.stringify({
-                        username: memoTarget,
-                        memo: newMemo
-                    })
-                });
-
-                if (res.ok) {
-                    showToast("메모가 저장되었습니다!", true);
-                    closeMemoModal();
-                    fetchAccounts(false);
-                } else {
-                    const errData = await res.json().catch(() => ({}));
-                    showToast(`메모 저장 실패: ${errData.detail || res.statusText}`, false);
-                }
-            } catch (err) {
-                console.error("메모 저장 오류:", err);
-                showToast("네트워크 오류", false);
-            }
-        }
-
-        // 개별 계정 삭제
-        async function deleteAccount(username) {
-            if (confirm(`'${username}' 계정을 정말 삭제하시겠습니까?`)) {
-                try {
-                    const url = `/api/account/${encodeURIComponent(username)}`;
-                    const res = await fetch(url, {
-                        method: "DELETE",
-                        headers: {
-                            "x-api-key": apiKey
-                        }
-                    });
-                    if (res.ok) {
-                        showToast(`계정이 삭제되었습니다.`, true);
-                        fetchAccounts(false);
-                    } else {
-                        const errData = await res.json().catch(() => ({}));
-                        showToast(`삭제 실패: ${errData.detail || res.statusText}`, false);
-                    }
-                } catch (err) {
-                    console.error("삭제 실패:", err);
-                    showToast("네트워크 오류", false);
-                }
-            }
-        }
-
-        // 계정 목록 실시간 갱신 API 호출
-        async function fetchAccounts(manual = false) {
-            if (isModalOpen && !manual) return;
-            const icon = document.getElementById("refreshIcon");
-            if (manual && icon) icon.classList.add("animate-spin");
-
-            try {
-                const url = `/api/accounts`;
-                const res = await fetch(url, {
-                    headers: { "x-api-key": apiKey }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.accounts) {
-                        accountsData = data.accounts;
-                        try {
-                            localStorage.setItem("valo_accounts_cache", JSON.stringify(accountsData));
-                        } catch (e) {}
-                        renderAccounts(accountsData);
-                        updateStats(data.stats || {});
-                    }
-                }
-            } catch (err) {
-                console.error("동기화 실패:", err);
-            } finally {
-                if (icon) icon.classList.remove("animate-spin");
-            }
-        }
-
-        // 상단 통계 수치 갱신
-        function updateStats(stats) {
-            if (!stats) return;
-            const total = stats.total || 0;
-            const available = stats.available || 0;
-            const inUse = stats.in_use || 0;
-            const shared = stats.shared || 0;
-            const used = stats.used || 0;
-            const banned = stats.banned || 0;
-
-            document.getElementById("statTotal").innerText = total;
-            document.getElementById("statAvailable").innerText = available;
-            document.getElementById("statInUse").innerText = inUse + shared;
-            document.getElementById("statBanned").innerText = banned;
-
-            document.getElementById("tabCount-all").innerText = total;
-            document.getElementById("tabCount-available").innerText = available;
-            document.getElementById("tabCount-in_use").innerText = inUse;
-            document.getElementById("tabCount-shared").innerText = shared;
-            document.getElementById("tabCount-used").innerText = used;
-            document.getElementById("tabCount-banned").innerText = banned;
-        }
-
-        // 동적 카드 렌더링
-        function renderAccounts(list) {
-            const container = document.getElementById("accountList");
-            if (!list || list.length === 0) {
-                container.innerHTML = `
-                    <div id="emptyMsg" class="text-center py-16 text-gray-500 bg-valo-card border rounded-xl">
-                        <i class="fa-solid fa-inbox text-4xl mb-3 text-gray-600 block"></i>
-                        <p class="text-sm font-semibold">아직 생성된 계정이 없습니다.</p>
-                        <p class="text-xs mt-1 text-gray-600">PC 프로그램에서 계정을 생성하면 여기에 실시간으로 나타납니다.</p>
-                    </div>`;
+            if (filtered.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
                 return;
             }
 
-            let html = "";
-            list.forEach(acc => {
+            emptyState.classList.add('hidden');
+            container.innerHTML = filtered.map((acc, idx) => {
                 const tag = acc.status_tag || 'available';
-                const memo = acc.memo || '';
-                const createdShort = acc.created_at ? acc.created_at.substring(5, 16).replace('T', ' ') : '';
-                const bdStr = acc.birthdate ? `${acc.birthdate.year || ''}-${acc.birthdate.month || ''}-${acc.birthdate.day || ''}` : '';
+                const tagMeta = STATUS_MAP[tag] || STATUS_MAP['available'];
+                const memoText = acc.memo ? escapeHtml(acc.memo) : '';
 
-                // 태그 뱃지 HTML
-                let badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🟢 미사용</span>`;
-                if (tag === 'in_use') badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30">🔵 사용 중</span>`;
-                else if (tag === 'shared') badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">🟣 타인 사용</span>`;
-                else if (tag === 'used') badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400 border border-gray-500/30">⚪ 사용 완료</span>`;
-                else if (tag === 'banned') badgeHtml = `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">🔴 정지/밴</span>`;
-
-                html += `
-                <div class="account-card bg-valo-card border rounded-xl p-3.5 shadow-md transition hover:border-[#ff4655]/50 relative"
-                     data-user="${acc.username}" data-email="${acc.email}" data-memo="${memo}" data-tag="${tag}">
-                    
-                    <div class="flex items-start justify-between border-b border-[#223242] pb-2.5 mb-2.5">
-                        <div>
-                            <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                                <div class="status-badge-container">${badgeHtml}</div>
-                                <h3 class="font-valo text-lg font-bold text-white tracking-wide leading-tight ml-1">${acc.username}</h3>
-                            </div>
-                            <p class="text-[11px] text-gray-400 mt-0.5">${acc.email}</p>
-                        </div>
-                        <button onclick="copyText('${acc.username}:${acc.password}', '아이디:비밀번호')" 
-                                class="px-2.5 py-1.5 bg-[#ff4655] hover:bg-red-600 text-white rounded-lg text-xs font-bold flex items-center space-x-1 btn-active shadow-md shadow-red-500/20 flex-shrink-0">
-                            <i class="fa-regular fa-clone"></i>
-                            <span>ID:PW 복사</span>
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 text-xs mb-2.5">
-                        <button onclick="copyText('${acc.username}', '아이디')" 
-                                class="flex items-center justify-between p-2.5 bg-[#0c1218] border border-[#223242] rounded-lg hover:border-gray-500 text-left btn-active">
-                            <div class="truncate mr-1">
-                                <span class="text-[10px] text-gray-500 block">아이디</span>
-                                <span class="font-mono text-gray-200 truncate">${acc.username}</span>
-                            </div>
-                            <i class="fa-regular fa-copy text-gray-400 text-xs flex-shrink-0"></i>
-                        </button>
-                        <button onclick="copyText('${acc.password}', '비밀번호')" 
-                                class="flex items-center justify-between p-2.5 bg-[#0c1218] border border-[#223242] rounded-lg hover:border-gray-500 text-left btn-active">
-                            <div class="truncate mr-1">
-                                <span class="text-[10px] text-gray-500 block">비밀번호</span>
-                                <span class="font-mono text-amber-400 font-bold truncate">${acc.password}</span>
-                            </div>
-                            <i class="fa-regular fa-copy text-gray-400 text-xs flex-shrink-0"></i>
-                        </button>
-                    </div>
-
-                    <div class="bg-[#0c1218]/70 p-1.5 rounded-lg border border-[#223242] mb-2">
-                        <div class="flex items-center justify-between mb-1 px-1">
-                            <span class="text-[10px] text-gray-400 font-semibold">상태 변경:</span>
-                            <button onclick="deleteAccount('${acc.username}')" class="text-[10px] text-red-400 hover:text-red-300 flex items-center space-x-1">
-                                <i class="fa-solid fa-trash-can text-[9px]"></i>
-                                <span>삭제</span>
-                            </button>
-                        </div>
-                        <div class="grid grid-cols-5 gap-1 text-[10px]">
-                            <button onclick="updateAccountStatus('${acc.username}', 'available')" 
-                                    class="py-1 px-1 rounded text-center font-bold ${tag === 'available' ? 'bg-emerald-500 text-white shadow' : 'bg-[#15202b] text-gray-400 hover:text-emerald-400 border border-[#223242]'} btn-active">
-                                미사용
-                            </button>
-                            <button onclick="updateAccountStatus('${acc.username}', 'in_use')" 
-                                    class="py-1 px-1 rounded text-center font-bold ${tag === 'in_use' ? 'bg-sky-500 text-white shadow' : 'bg-[#15202b] text-gray-400 hover:text-sky-400 border border-[#223242]'} btn-active">
-                                사용중
-                            </button>
-                            <button onclick="updateAccountStatus('${acc.username}', 'shared')" 
-                                    class="py-1 px-1 rounded text-center font-bold ${tag === 'shared' ? 'bg-purple-500 text-white shadow' : 'bg-[#15202b] text-gray-400 hover:text-purple-400 border border-[#223242]'} btn-active">
-                                타인사용
-                            </button>
-                            <button onclick="updateAccountStatus('${acc.username}', 'used')" 
-                                    class="py-1 px-1 rounded text-center font-bold ${tag === 'used' ? 'bg-gray-500 text-white shadow' : 'bg-[#15202b] text-gray-400 hover:text-gray-200 border border-[#223242]'} btn-active">
-                                완료
-                            </button>
-                            <button onclick="updateAccountStatus('${acc.username}', 'banned')" 
-                                    class="py-1 px-1 rounded text-center font-bold ${tag === 'banned' ? 'bg-rose-600 text-white shadow' : 'bg-[#15202b] text-gray-400 hover:text-rose-400 border border-[#223242]'} btn-active">
-                                정지
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between text-[11px] pt-1">
-                        <div onclick="openMemoModal('${acc.username}', '${memo.replace(/'/g, "\\'")}')" class="cursor-pointer flex-1 flex items-center space-x-1.5 text-gray-400 hover:text-white bg-[#0c1218]/40 px-2 py-1 rounded border border-transparent hover:border-gray-700 transition mr-2">
-                            <i class="fa-solid fa-pen-to-square text-[10px] text-amber-400"></i>
-                            <span class="memo-display truncate">
-                                ${memo ? `<span class="text-amber-300 font-medium">${memo}</span>` : `<span class="text-gray-500 italic">+ 메모 남기기 (예: 철수 줌, 본캐 등)</span>`}
+                return `
+                <div class="bg-[#111a24] border border-[#1e2c3a] rounded-xl p-3.5 shadow-md relative hover:border-gray-600 transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider bg-${tagMeta.color}-500/15 text-${tagMeta.color}-400 border border-${tagMeta.color}-500/30 flex items-center">
+                                <i class="fa-solid ${tagMeta.icon} text-[8px] mr-1"></i>${tagMeta.label}
                             </span>
+                            <span class="text-xs text-gray-400 font-mono">${acc.created_at ? acc.created_at.substring(5, 16).replace('T', ' ') : ''}</span>
                         </div>
-                        <span class="text-[10px] text-gray-500 flex-shrink-0">${createdShort}</span>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="openMemoModal('${acc.username}')" class="px-2 py-1 bg-[#1a2634] text-gray-300 hover:text-white rounded-lg text-[11px] font-medium flex items-center space-x-1 btn-active">
+                                <i class="fa-solid fa-pen text-[10px] text-gray-400"></i>
+                                <span>${memoText ? '메모' : '+메모'}</span>
+                            </button>
+                            <button onclick="deleteAccount('${acc.username}')" class="p-1 text-gray-500 hover:text-red-400 rounded-lg text-xs btn-active ml-1">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
                     </div>
-                </div>`;
+
+                    <div class="grid grid-cols-1 gap-1.5 mb-2.5 bg-[#080c10] p-2.5 rounded-lg border border-[#1e2c3a]">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] text-gray-500 font-medium">아이디</span>
+                            <div class="flex items-center space-x-1.5">
+                                <span class="font-mono text-xs font-bold text-white">${escapeHtml(acc.username)}</span>
+                                <button onclick="copyToClipboard('${acc.username}', '아이디가 복사되었습니다')" class="text-gray-400 hover:text-white text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] text-gray-500 font-medium">비밀번호</span>
+                            <div class="flex items-center space-x-1.5">
+                                <span class="font-mono text-xs font-semibold text-emerald-400">${escapeHtml(acc.password)}</span>
+                                <button onclick="copyToClipboard('${acc.password}', '비밀번호가 복사되었습니다')" class="text-gray-400 hover:text-white text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] text-gray-500 font-medium">이메일</span>
+                            <span class="font-mono text-[11px] text-gray-400 truncate max-w-[200px]">${escapeHtml(acc.email)}</span>
+                        </div>
+                        ${memoText ? `
+                        <div class="mt-1 pt-1.5 border-t border-gray-800 flex items-start space-x-1.5">
+                            <span class="text-[11px] text-amber-400 font-medium whitespace-nowrap">📝 메모:</span>
+                            <span class="text-[11px] text-gray-300 break-all">${memoText}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- 1-Tap 빠른 상태 변경 버튼 바 -->
+                    <div class="grid grid-cols-5 gap-1 pt-1">
+                        <button onclick="updateStatus('${acc.username}', 'available')" class="py-1 rounded text-[10px] font-semibold transition ${tag === 'available' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-[#15202b] text-gray-400 hover:text-emerald-300'}">미사용</button>
+                        <button onclick="updateStatus('${acc.username}', 'in_use')" class="py-1 rounded text-[10px] font-semibold transition ${tag === 'in_use' ? 'bg-blue-500 text-white shadow-sm' : 'bg-[#15202b] text-gray-400 hover:text-blue-300'}">사용중</button>
+                        <button onclick="updateStatus('${acc.username}', 'shared')" class="py-1 rounded text-[10px] font-semibold transition ${tag === 'shared' ? 'bg-purple-500 text-white shadow-sm' : 'bg-[#15202b] text-gray-400 hover:text-purple-300'}">타인</button>
+                        <button onclick="updateStatus('${acc.username}', 'used')" class="py-1 rounded text-[10px] font-semibold transition ${tag === 'used' ? 'bg-gray-600 text-white shadow-sm' : 'bg-[#15202b] text-gray-400 hover:text-gray-300'}">완료</button>
+                        <button onclick="updateStatus('${acc.username}', 'banned')" class="py-1 rounded text-[10px] font-semibold transition ${tag === 'banned' ? 'bg-red-500 text-white shadow-sm' : 'bg-[#15202b] text-gray-400 hover:text-red-300'}">정지</button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            const stats = {
+                total: accountsData.length,
+                available: 0, in_use: 0, shared: 0, used: 0, banned: 0
+            };
+            accountsData.forEach(a => {
+                const tag = a.status_tag || 'available';
+                if (stats[tag] !== undefined) stats[tag]++;
             });
-            container.innerHTML = html;
-            filterAccounts();
+
+            document.getElementById('statTotal').innerText = stats.total;
+            document.getElementById('statAvailable').innerText = stats.available;
+            document.getElementById('statInUse').innerText = stats.in_use;
+            document.getElementById('statShared').innerText = stats.shared;
+
+            document.getElementById('count-all').innerText = stats.total;
+            document.getElementById('count-available').innerText = stats.available;
+            document.getElementById('count-in_use').innerText = stats.in_use;
+            document.getElementById('count-shared').innerText = stats.shared;
+            document.getElementById('count-used').innerText = stats.used;
+            document.getElementById('count-banned').innerText = stats.banned;
         }
 
-        // TXT 파일 다운로드
-        function downloadTxt() {
-            const tagParam = currentCategory !== "all" ? `?tag=${currentCategory}` : "";
-            const url = `/api/export${tagParam}`;
-            window.open(url, "_blank");
-        }
-
-        // 기록 초기화 확인
-        async function confirmClear() {
-            if (confirm("정말로 클라우드에 저장된 모든 계정 기록을 삭제하시겠습니까?")) {
-                const url = `/api/clear`;
-                const res = await fetch(url, { 
-                    method: "POST",
-                    headers: { "x-api-key": apiKey }
+        async function fetchAccounts(manual = false) {
+            try {
+                const res = await fetch('/api/accounts', {
+                    headers: { 'x-api-key': 'valo2026' }
                 });
                 if (res.ok) {
-                    showToast("기록이 모두 초기화되었습니다.", true);
-                    fetchAccounts();
+                    const data = await res.json();
+                    if (data.accounts) {
+                        accountsData = data.accounts;
+                        renderAccounts();
+                        if (manual) showToast('계정 목록 새로고침 완료');
+                    }
                 }
+            } catch (e) {
+                console.error(e);
             }
         }
 
-        // 4초마다 백그라운드 자동 갱신
+        async function updateStatus(username, tag) {
+            const acc = accountsData.find(a => a.username === username);
+            if (acc) acc.status_tag = tag;
+            renderAccounts();
+
+            try {
+                await fetch('/api/account/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': 'valo2026' },
+                    body: JSON.stringify({ username: username, status_tag: tag })
+                });
+                showToast(`상태가 '${STATUS_MAP[tag].label}'(으)로 변경되었습니다`);
+            } catch (e) {
+                showToast('상태 업데이트 실패', true);
+            }
+        }
+
+        async function deleteAccount(username) {
+            if (!confirm(`정말로 '${username}' 계정을 삭제하시겠습니까?`)) return;
+            accountsData = accountsData.filter(a => a.username !== username);
+            renderAccounts();
+
+            try {
+                await fetch(`/api/account/${username}`, {
+                    method: 'DELETE',
+                    headers: { 'x-api-key': 'valo2026' }
+                });
+                showToast('계정이 삭제되었습니다');
+            } catch (e) {
+                showToast('삭제 실패', true);
+            }
+        }
+
+        function openMemoModal(username) {
+            currentEditUsername = username;
+            const acc = accountsData.find(a => a.username === username);
+            document.getElementById('modalUsername').innerText = `계정: ${username}`;
+            document.getElementById('modalMemoInput').value = acc ? (acc.memo || '') : '';
+            document.getElementById('memoModal').classList.remove('hidden');
+        }
+
+        function closeMemoModal() {
+            document.getElementById('memoModal').classList.add('hidden');
+        }
+
+        async function saveMemoFromModal() {
+            const memoVal = document.getElementById('modalMemoInput').value.trim();
+            const acc = accountsData.find(a => a.username === currentEditUsername);
+            if (acc) acc.memo = memoVal;
+            renderAccounts();
+            closeMemoModal();
+
+            try {
+                await fetch('/api/account/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': 'valo2026' },
+                    body: JSON.stringify({ username: currentEditUsername, memo: memoVal })
+                });
+                showToast('메모가 저장되었습니다');
+            } catch (e) {
+                showToast('메모 저장 실패', true);
+            }
+        }
+
+        function exportCurrentView() {
+            window.open(`/api/export${currentCategory !== 'all' ? '?tag=' + currentCategory : ''}`, '_blank');
+        }
+
+        // ── 라이센스 렌더링 및 기능 ───────────────────────────────────────────
+        function filterLicenses() {
+            renderLicenses();
+        }
+
+        function renderLicenses() {
+            const container = document.getElementById('licensesContainer');
+            const emptyState = document.getElementById('licEmptyState');
+            const search = (document.getElementById('licSearchInput').value || '').trim().toLowerCase();
+
+            let filtered = licensesData.filter(lic => {
+                if (search) {
+                    const k = (lic.key || '').toLowerCase();
+                    const m = (lic.memo || '').toLowerCase();
+                    const h = (lic.hwid || '').toLowerCase();
+                    if (!k.includes(search) && !m.includes(search) && !h.includes(search)) return false;
+                }
+                return true;
+            });
+
+            updateLicStats();
+            document.getElementById('tabCountLicenses').innerText = licensesData.length;
+
+            if (filtered.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            const now = new Date().toISOString();
+
+            container.innerHTML = filtered.map(lic => {
+                const isBanned = lic.status === 'banned';
+                const isExpired = lic.expires_at && lic.expires_at <= now;
+                const hasHwid = !!lic.hwid;
+
+                let statusBadge = '';
+                if (isBanned) {
+                    statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">차단됨</span>';
+                } else if (isExpired) {
+                    statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-500/20 text-gray-400 border border-gray-500/30">만료됨</span>';
+                } else {
+                    statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">정상 사용중</span>';
+                }
+
+                let hwidBadge = '';
+                if (hasHwid) {
+                    hwidBadge = `<span class="text-[11px] font-mono font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 flex items-center">
+                        <i class="fa-solid fa-lock text-[9px] mr-1"></i>${escapeHtml(lic.hwid)}
+                    </span>`;
+                } else {
+                    hwidBadge = `<span class="text-[11px] font-medium text-gray-400 bg-gray-800/60 px-2 py-0.5 rounded border border-gray-700 flex items-center">
+                        <i class="fa-solid fa-lock-open text-[9px] mr-1 text-gray-500"></i>미등록 (첫 인증 대기)
+                    </span>`;
+                }
+
+                return `
+                <div class="bg-[#111a24] border border-[#1e2c3a] rounded-xl p-3.5 shadow-md relative hover:border-gray-600 transition">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                            ${statusBadge}
+                            <span class="text-xs font-bold text-gray-300 truncate max-w-[160px]">📝 ${escapeHtml(lic.memo || '일반')}</span>
+                        </div>
+                        <span class="text-[11px] text-gray-400 font-mono">
+                            만료: ${lic.expires_at ? lic.expires_at.substring(0, 10) : '무제한'}
+                        </span>
+                    </div>
+
+                    <!-- 라이센스 키 본문 -->
+                    <div class="bg-[#080c10] p-2.5 rounded-lg border border-[#1e2c3a] mb-2.5 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] text-gray-500 font-medium">라이센스 키</span>
+                            <div class="flex items-center space-x-1.5">
+                                <span class="font-mono text-xs font-bold text-amber-300 tracking-wider">${escapeHtml(lic.key)}</span>
+                                <button onclick="copyToClipboard('${lic.key}', '라이센스 키가 복사되었습니다')" class="text-gray-400 hover:text-white text-xs"><i class="fa-regular fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-1 border-t border-gray-800/80">
+                            <span class="text-[11px] text-gray-500 font-medium">하드락 상태</span>
+                            ${hwidBadge}
+                        </div>
+                    </div>
+
+                    <!-- 관리 액션 버튼 그리드 -->
+                    <div class="grid grid-cols-3 gap-1.5 pt-1">
+                        <button onclick="resetLicenseHwid('${lic.key}')" class="py-1.5 bg-[#1a2634] hover:bg-blue-950/40 text-blue-400 border border-blue-500/20 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 btn-active">
+                            <i class="fa-solid fa-unlock-keyhole text-[10px]"></i>
+                            <span>하드락 해제</span>
+                        </button>
+                        <button onclick="toggleLicenseStatus('${lic.key}')" class="py-1.5 bg-[#1a2634] hover:bg-red-950/40 ${isBanned ? 'text-emerald-400 border-emerald-500/20' : 'text-red-400 border-red-500/20'} border rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 btn-active">
+                            <i class="fa-solid ${isBanned ? 'fa-check text-[10px]' : 'fa-ban text-[10px]'}"></i>
+                            <span>${isBanned ? '차단 해제' : '정지(차단)'}</span>
+                        </button>
+                        <button onclick="deleteLicense('${lic.key}')" class="py-1.5 bg-[#1a2634] hover:bg-gray-800 text-gray-400 hover:text-red-400 border border-gray-700 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 btn-active">
+                            <i class="fa-solid fa-trash text-[10px]"></i>
+                            <span>삭제</span>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function updateLicStats() {
+            const now = new Date().toISOString();
+            const stats = {
+                total: licensesData.length,
+                active: licensesData.filter(l => l.status === 'active' && (!l.expires_at || l.expires_at > now)).length,
+                locked: licensesData.filter(l => !!l.hwid).length,
+                banned: licensesData.filter(l => l.status === 'banned').length,
+                expired: licensesData.filter(l => l.expires_at && l.expires_at <= now).length
+            };
+
+            document.getElementById('licStatTotal').innerText = stats.total;
+            document.getElementById('licStatActive').innerText = stats.active;
+            document.getElementById('licStatLocked').innerText = stats.locked;
+            document.getElementById('licStatBanned').innerText = stats.banned + stats.expired;
+        }
+
+        async function fetchLicenses(manual = false) {
+            try {
+                const res = await fetch('/api/licenses', {
+                    headers: { 'x-api-key': 'valo2026' }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.licenses) {
+                        licensesData = data.licenses;
+                        renderLicenses();
+                        if (manual && currentTab === 'licenses') showToast('라이센스 목록 새로고침 완료');
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function openCreateLicenseModal() {
+            document.getElementById('newLicKey').value = '';
+            document.getElementById('newLicMemo').value = '';
+            document.getElementById('newLicDays').value = '30';
+            document.getElementById('createLicenseModal').classList.remove('hidden');
+        }
+
+        function closeCreateLicenseModal() {
+            document.getElementById('createLicenseModal').classList.add('hidden');
+        }
+
+        function generateRandomKeyInput() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const r = (k) => Array.from({length: k}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+            document.getElementById('newLicKey').value = `VALO-${r(4)}-${r(4)}-${r(4)}`;
+        }
+
+        async function submitCreateLicense() {
+            const key = document.getElementById('newLicKey').value.trim();
+            const memo = document.getElementById('newLicMemo').value.trim();
+            const days = parseInt(document.getElementById('newLicDays').value, 10);
+
+            try {
+                const res = await fetch('/api/license/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': 'valo2026' },
+                    body: JSON.stringify({ key: key || null, memo: memo || '일반 사용자', days: days })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`라이센스 '${data.license.key}' 발급 완료!`);
+                    closeCreateLicenseModal();
+                    fetchLicenses();
+                } else {
+                    alert(data.detail || '라이센스 생성 실패');
+                }
+            } catch (e) {
+                alert('서버 통신 오류');
+            }
+        }
+
+        async function resetLicenseHwid(key) {
+            if (!confirm(`'${key}' 라이센스의 하드락을 해제하시겠습니까?\n새로운 PC에서 인증할 수 있게 됩니다.`)) return;
+            try {
+                const res = await fetch('/api/license/reset_hwid', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': 'valo2026' },
+                    body: JSON.stringify({ key: key })
+                });
+                if (res.ok) {
+                    showToast('하드락이 성공적으로 해제되었습니다');
+                    fetchLicenses();
+                }
+            } catch (e) {
+                showToast('하드락 해제 실패', true);
+            }
+        }
+
+        async function toggleLicenseStatus(key) {
+            try {
+                const res = await fetch('/api/license/toggle_status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': 'valo2026' },
+                    body: JSON.stringify({ key: key })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    showToast(data.message || '상태가 변경되었습니다');
+                    fetchLicenses();
+                }
+            } catch (e) {
+                showToast('상태 변경 실패', true);
+            }
+        }
+
+        async function deleteLicense(key) {
+            if (!confirm(`정말로 '${key}' 라이센스를 영구 삭제하시겠습니까?`)) return;
+            try {
+                const res = await fetch(`/api/license/${key}`, {
+                    method: 'DELETE',
+                    headers: { 'x-api-key': 'valo2026' }
+                });
+                if (res.ok) {
+                    showToast('라이센스가 삭제되었습니다');
+                    fetchLicenses();
+                }
+            } catch (e) {
+                showToast('삭제 실패', true);
+            }
+        }
+
+        // ── 유틸리티 함수 ────────────────────────────────────────────────────
+        function copyToClipboard(text, msg) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(msg);
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast(msg);
+            });
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = msg;
+            if (isError) {
+                toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl flex items-center space-x-2 opacity-100 transition-all duration-300';
+                toastIcon.className = 'fa-solid fa-circle-xmark';
+            } else {
+                toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#ff4655] text-white px-4 py-2.5 rounded-full text-xs font-semibold shadow-xl shadow-red-500/30 flex items-center space-x-2 opacity-100 transition-all duration-300';
+                toastIcon.className = 'fa-solid fa-circle-check';
+            }
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+
+        function escapeHtml(string) {
+            if (!string) return '';
+            return String(string).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+
+        // 3초마다 실시간 자동 동기화
         setInterval(() => {
-            fetchAccounts(false);
-        }, 4000);
+            if (currentTab === 'accounts') fetchAccounts();
+            else fetchLicenses();
+        }, 3000);
+
+        // 첫 렌더링
+        renderAccounts();
     </script>
 </body>
 </html>
