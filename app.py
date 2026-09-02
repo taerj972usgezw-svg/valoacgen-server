@@ -4,16 +4,19 @@ import random
 import string
 import datetime
 from typing import Optional, List
-from fastapi import FastAPI, Request, Header, HTTPException, Depends
-from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
+from fastapi import FastAPI, Request, Header, HTTPException, Depends, File, UploadFile, Form
+from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-app = FastAPI(title="ValoAcGen Mobile Dashboard & License Manager", version="4.0.0")
+app = FastAPI(title="ValoAcGen Mobile Dashboard & License Manager", version="6.0.0")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, "accounts.json")
 LICENSE_FILE = os.path.join(BASE_DIR, "licenses.json")
+VERSION_FILE = os.path.join(BASE_DIR, "version.json")
+UPDATES_DIR = os.path.join(BASE_DIR, "updates")
+os.makedirs(UPDATES_DIR, exist_ok=True)
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 API_SECRET_KEY = os.getenv("API_SECRET_KEY", "")
@@ -103,6 +106,30 @@ def save_licenses(licenses: List[dict]):
     with open(LICENSE_FILE, "w", encoding="utf-8") as f:
         json.dump(licenses, f, ensure_ascii=False, indent=2)
 
+# ── 버전 및 업데이트 데이터 관리 ─────────────────────────────────────────────
+def load_version() -> dict:
+    if not os.path.exists(VERSION_FILE):
+        default_version = {
+            "version": "6.0",
+            "download_url": "/download/latest",
+            "filename": "ValorantGenerator_v4.0.exe",
+            "changelog": "안정화 및 최신 라이센스 & 자동 업데이트 엔진 탑재",
+            "size_bytes": 0,
+            "size_mb": "0.0 MB",
+            "updated_at": datetime.datetime.now().isoformat(timespec="seconds")
+        }
+        save_version(default_version)
+        return default_version
+    try:
+        with open(VERSION_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {"version": "6.0", "download_url": "/download/latest"}
+
+def save_version(v_data: dict):
+    with open(VERSION_FILE, "w", encoding="utf-8") as f:
+        json.dump(v_data, f, ensure_ascii=False, indent=2)
+
 def generate_random_license_key() -> str:
     """VALO-XXXX-XXXX-XXXX 형식의 고유 라이센스 키 생성"""
     chars = string.ascii_uppercase + string.digits
@@ -134,6 +161,7 @@ async def get_dashboard(request: Request, key: Optional[str] = None):
     accounts_sorted = list(reversed(accounts))
     licenses = load_licenses()
     licenses_sorted = list(reversed(licenses))
+    version_info = load_version()
     
     # 계정 통계
     stats = {
@@ -163,9 +191,68 @@ async def get_dashboard(request: Request, key: Optional[str] = None):
             "licenses": licenses_sorted,
             "stats": stats,
             "lic_stats": lic_stats,
-            "api_key": key or ""
+            "version_info": version_info,
+            "auth_key": key or ""
         }
     )
+
+# ── 자동 업데이트 및 EXE 배포 API ─────────────────────────────────────────────
+@app.get("/api/check_update")
+async def api_check_update():
+    v = load_version()
+    latest_file = os.path.join(UPDATES_DIR, "ValorantGenerator_latest.exe")
+    has_file = os.path.exists(latest_file)
+    return {
+        "status": "ok",
+        "version": v.get("version", "6.0"),
+        "download_url": "/download/latest" if has_file else "",
+        "changelog": v.get("changelog", ""),
+        "updated_at": v.get("updated_at", ""),
+        "size_mb": v.get("size_mb", "")
+    }
+
+@app.post("/api/upload_update")
+async def api_upload_update(
+    file: UploadFile = File(...),
+    version: str = Form(...),
+    changelog: Optional[str] = Form("")
+):
+    if not file.filename.endswith(".exe"):
+        raise HTTPException(status_code=400, detail="EXE 파일만 업로드할 수 있습니다.")
+    
+    target_path = os.path.join(UPDATES_DIR, "ValorantGenerator_latest.exe")
+    contents = await file.read()
+    file_size = len(contents)
+    
+    with open(target_path, "wb") as f:
+        f.write(contents)
+        
+    v_info = {
+        "version": version.strip(),
+        "download_url": "/download/latest",
+        "filename": file.filename,
+        "changelog": changelog.strip() or "최신 업데이트 배포 완료",
+        "size_bytes": file_size,
+        "size_mb": f"{file_size / (1024 * 1024):.1f} MB",
+        "updated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    save_version(v_info)
+    
+    return {"status": "ok", "message": f"최신 버전({version}) EXE 파일이 성공적으로 배포되었습니다!", "version_info": v_info}
+
+@app.get("/download/latest")
+async def download_latest_exe():
+    latest_path = os.path.join(UPDATES_DIR, "ValorantGenerator_latest.exe")
+    if not os.path.exists(latest_path):
+        root_exe = os.path.join(os.path.dirname(BASE_DIR), "ValorantGenerator_v4.0.exe")
+        if os.path.exists(root_exe):
+            latest_path = root_exe
+        else:
+            raise HTTPException(status_code=404, detail="배포된 최신 EXE 파일이 없습니다.")
+    
+    v = load_version()
+    fn = f"ValorantGenerator_{v.get('version', 'latest')}.exe"
+    return FileResponse(latest_path, filename=fn, media_type="application/octet-stream")
 
 # ── 라이센스 관리 및 하드락 API ─────────────────────────────────────────────────
 @app.post("/api/license/verify")
