@@ -420,14 +420,14 @@
                             <span class="text-[11px] text-gray-500 font-medium">아이디</span>
                             <div class="flex items-center space-x-1.5">
                                 <span class="font-mono text-xs font-bold text-white">${escapeHtml(acc.username)}</span>
-                                <button onclick="copyToClipboard('${acc.username}', '아이디가 복사되었습니다')" class="text-gray-400 hover:text-white text-xs"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="copyToClipboard('${acc.username}', '아이디가 복사되었습니다')" class="px-1.5 py-0.5 bg-[#141f2d] hover:bg-[#1f2d40] text-gray-300 hover:text-white rounded text-[10px] font-mono"><i class="fa-regular fa-copy mr-1"></i>ID</button>
                             </div>
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] text-gray-500 font-medium">비밀번호</span>
                             <div class="flex items-center space-x-1.5">
                                 <span class="font-mono text-xs font-semibold text-emerald-400">${escapeHtml(acc.password)}</span>
-                                <button onclick="copyToClipboard('${acc.password}', '비밀번호가 복사되었습니다')" class="text-gray-400 hover:text-white text-xs"><i class="fa-regular fa-copy"></i></button>
+                                <button onclick="copyToClipboard('${acc.password}', '비밀번호가 복사되었습니다')" class="px-1.5 py-0.5 bg-[#141f2d] hover:bg-[#1f2d40] text-emerald-300 hover:text-emerald-200 rounded text-[10px] font-mono"><i class="fa-regular fa-copy mr-1"></i>PW</button>
                             </div>
                         </div>
                         <div class="flex items-center justify-between">
@@ -440,6 +440,15 @@
                             <span class="text-[11px] text-gray-300 break-all">${memoText}</span>
                         </div>
                         ` : ''}
+                        
+                        <!-- ⚡ 원클릭 아이디:비밀번호 일괄 복사 버튼 -->
+                        <div class="mt-1.5 pt-1.5 border-t border-gray-800/80 flex items-center justify-between">
+                            <span class="text-[10px] text-gray-400 font-medium">원클릭 로그인 콤보:</span>
+                            <button onclick="copyToClipboard('${acc.username}:${acc.password}', '아이디:비밀번호가 복사되었습니다')" class="px-2.5 py-1 bg-gradient-to-r from-[#ff4655] to-[#d93846] hover:from-[#ff5865] hover:to-[#e6404e] text-white rounded-md text-[11px] font-bold shadow-sm shadow-red-500/20 flex items-center space-x-1 btn-active">
+                                <i class="fa-solid fa-bolt text-[10px]"></i>
+                                <span>ID:비번 바로 복사</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- 1-Tap 빠른 상태 변경 버튼 바 -->
